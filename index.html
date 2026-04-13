@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>App de Treino</title>
+    
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#3b82f6" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Treino" />
+    <link rel="apple-touch-icon" href="icon-192.png" />
+
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        background: #f5f7fb;
+        color: #111827;
+        padding-bottom: 80px;
+        box-sizing: border-box;
+      }
+      .container {
+        width: min(100%, 420px);
+        padding: 34px 28px;
+        background: #ffffff;
+        border: none;
+        border-radius: 32px;
+        box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
+      }
+      .screen {
+        display: none;
+      }
+      .screen.active {
+        display: block;
+      }
+      h1 {
+        margin: 0;
+        font-size: 40px;
+        line-height: 1.04;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        color: #111827;
+      }
+      p.subtitle {
+        margin: 16px 0 28px;
+        font-size: 20px;
+        font-weight: 700;
+        color: #475569;
+      }
+      .field {
+        margin-bottom: 20px;
+      }
+      label {
+        display: block;
+        margin-bottom: 10px;
+        font-size: 14px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #64748b;
+      }
+      input {
+        width: 92%;
+        padding: 16px 18px;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        font-size: 16px;
+        background: #f8fafc;
+        color: #111827;
+        outline: none;
+        transition: all 0.2s;
+      }
+      input:focus {
+        background: #ffffff;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+      }
+      button {
+        width: 101%;
+        padding: 16px;
+        border: none;
+        border-radius: 16px;
+        background: #111827;
+        color: #ffffff;
+        font-size: 16px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      button:hover {
+        background: #334155;
+      }
+      .secondary-button {
+        width: auto;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+        padding: 14px 18px;
+        background: #f1f5f9;
+        color: #111827;
+      }
+      .secondary-button:hover {
+        background: #e2e8f0;
+      }
+      .error {
+        color: #ef4444;
+        background: transparent;
+        margin-top: 12px;
+        font-weight: 600;
+        text-align: left;
+      }
+      .list-box {
+        margin-top: 24px;
+      }
+      .list-item {
+        width: 100%;
+        box-sizing: border-box;
+        min-height: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+        padding: 14px 16px;
+        border-radius: 16px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        margin-bottom: 12px;
+      }
+      .list-item button {
+        width: auto;
+        padding: 10px 14px;
+        background: #fee2e2;
+        color: #ef4444;
+        border: none;
+        border-radius: 12px;
+      }
+      .list-item button:hover {
+        background: #fecaca;
+      }
+      .item-actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .reorder-btns {
+        display: flex;
+        gap: 4px;
+      }
+      .list-item .reorder-btns button,
+      .exercicio-header .reorder-btns button {
+        width: auto;
+        padding: 6px 10px;
+        background: #e2e8f0;
+        color: #475569;
+        border: none;
+        border-radius: 8px;
+      }
+      .list-item .reorder-btns button:hover:not(:disabled),
+      .exercicio-header .reorder-btns button:hover:not(:disabled) {
+        background: #cbd5e1;
+        color: #0f172a;
+      }
+      button:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      .top-right {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 14px;
+      }
+      .tab-btn {
+        flex: 1;
+        padding: 10px;
+        border-radius: 12px;
+        font-size: 14px;
+        margin: 0;
+        width: auto;
+        justify-content: center;
+      }
+      .top-right button {
+        width: auto;
+        padding: 10px 14px;
+      }
+      .select-card {
+        position: relative;
+        width: 91%;
+        border-radius: 16px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        padding: 14px 18px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        cursor: pointer;
+      }
+      .select-card::after {
+        content: '▾';
+        font-size: 20px;
+        color: #64748b;
+      }
+      .select-card select {
+        width: 100%;
+        border: none;
+        background: transparent;
+        font-size: 18px;
+        font-weight: 700;
+        color: #111827;
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        outline: none;
+        cursor: pointer;
+      }
+      .select-card select::-ms-expand {
+        display: none;
+      }
+      .exercicio-item {
+        margin-bottom: 24px;
+        padding: 18px;
+        border-radius: 16px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+      }
+      .exercicio-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+      .exercicio-header h3 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 700;
+      }
+      .serie-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 8px;
+      }
+      .serie-item input {
+        width: 60px;
+        padding: 8px 12px;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        font-size: 14px;
+        background: #ffffff;
+      }
+      .serie-item input:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      }
+      .add-serie-btn {
+        width: auto;
+        padding: 8px 12px;
+        background: #d1fae5;
+        color: #059669;
+        border: none;
+        border-radius: 10px;
+        font-size: 14px;
+      }
+      .add-serie-btn:hover {
+        background: #a7f3d0;
+      }
+      .remove-serie-btn {
+        width: auto;
+        padding: 8px 12px;
+        background: #fee2e2;
+        color: #ef4444;
+        border: none;
+        border-radius: 10px;
+        font-size: 14px;
+      }
+      .remove-serie-btn:hover {
+        background: #fecaca;
+      }
+      .bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background: #ffffff;
+        border-top: 1px solid #e2e8f0;
+        display: none;
+        justify-content: space-around;
+        padding: 12px 0;
+        box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.05);
+        z-index: 100;
+      }
+      .bottom-nav.active {
+        display: flex;
+      }
+      .nav-item {
+        background: transparent;
+        border: none;
+        color: #64748b;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+        padding: 10px 24px;
+        border-radius: 12px;
+        width: auto;
+        transition: all 0.2s ease;
+      }
+      .nav-item:hover {
+        background: #f1f5f9;
+        color: #0f172a;
+      }
+      .nav-item.active {
+        color: #3b82f6;
+        background: #eff6ff;
+      }
+      .small-text {
+        font-size: 14px;
+        color: #64748b;
+        text-align: center;
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="screen active" id="cadastroScreen">
+        <h1>Olá!</h1>
+        <p class="subtitle">Vamos começar com seu cadastro.</p>
+        <div class="field">
+          <label for="nomeCliente">Nome do cliente</label>
+          <input id="nomeCliente" type="text" placeholder="Ex: João" />
+        </div>
+        <button id="entrarBtn">Continuar</button>
+        <div class="error" id="erroCadastro"></div>
+      </div>
+
+      <div class="screen" id="treinoScreen">
+        <div class="top-right">
+          <button class="secondary-button" id="editarCadastroBtn" type="button">Trocar cliente</button>
+        </div>
+        <h1>Olá, <span id="nomeUsuario">cliente</span></h1>
+        <p class="subtitle">Hoje é dia de treinar o que?</p>
+
+        <div class="field">
+          <label for="treinoSelect">Caixa de seleção</label>
+          <div class="select-card">
+            <select id="treinoSelect"></select>
+          </div>
+        </div>
+
+        <button id="confirmarTreinoBtn">Iniciar treino</button>
+
+        <div class="list-box" id="treinoList"></div>
+
+        <div class="field">
+          <label for="novoTreino">Novo treino</label>
+          <div style="width: auto-2px; display: grid; grid-template-columns: 1fr auto; gap: 30px;">
+            <input id="novoTreino" type="text" placeholder="Treino D"/>
+            <button id="adicionarTreinoBtn" type="button" class="secondary-button">Adicionar</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="screen" id="sessaoScreen">
+        <div class="top-right">
+          <button class="secondary-button" id="voltarTreinoBtn" type="button">Voltar</button>
+        </div>
+        <h1>Sessão de Treino</h1>
+        <p class="subtitle">Treino: <span id="treinoAtual"></span></p>
+
+        <div class="field">
+          <label for="exercicioSelect">Novo exercício</label>
+          <div style="width: 100%; display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center;">
+            <div class="select-card" style="width: 100%; box-sizing: border-box;">
+              <select id="exercicioSelect"></select>
+            </div>
+            <button id="adicionarExercicioBtn" type="button" class="secondary-button">Adicionar</button>
+          </div>
+        </div>
+
+        <div class="list-box" id="exercicioList"></div>
+
+        <div class="error" id="erroSessao"></div>
+        <button id="iniciarTreinoBtn" style="margin-top: 12px;">Iniciar Treino</button>
+      </div>
+
+      <div class="screen" id="execucaoScreen">
+        <div class="top-right">
+          <button class="secondary-button" id="cancelarExecucaoBtn" type="button">Cancelar</button>
+        </div>
+        <h1 id="execucaoTitle">Execução</h1>
+        <p class="subtitle" id="execucaoSubtitle">Treino em andamento</p>
+
+        <div class="exercicio-item" style="text-align: center; padding: 40px 20px; margin-top: 20px;">
+          <h2 id="flashcardExercicio" style="margin: 0 0 8px 0; font-size: 24px;"></h2>
+          <p id="flashcardSerie" class="subtitle" style="margin-top: 0; margin-bottom: 24px; color: #3b82f6;"></p>
+          
+          <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-bottom: 32px; text-align: left;">
+            <div>
+              <label for="flashcardReps">Repetições</label>
+              <input type="number" id="flashcardReps" style="width: 80px; text-align: center;" />
+            </div>
+            <div>
+              <label for="flashcardCarga">Carga (kg)</label>
+              <input type="number" id="flashcardCarga" style="width: 80px; text-align: center;" />
+            </div>
+            <div>
+              <label for="flashcardDescanso">Descanso (s)</label>
+              <input type="number" id="flashcardDescanso" value="60" style="width: 80px; text-align: center;" />
+            </div>
+          </div>
+
+          <div id="cronometroContainer" style="display: none; margin-bottom: 24px;">
+            <p class="small-text" style="margin-bottom: 4px;">Tempo de Descanso</p>
+            <div id="cronometroDisplay" style="font-size: 40px; font-weight: 800; color: #10b981; margin: 0;">00:00</div>
+          </div>
+
+          <button id="iniciarCronometroBtn" class="secondary-button" style="margin-bottom: 16px; width: 100%; box-sizing: border-box;">Iniciar Cronômetro</button>
+          
+          <div style="display: flex; gap: 12px;">
+            <button id="voltarSerieBtn" class="secondary-button" style="flex: 1; padding: 16px 0;">Voltar</button>
+            <button id="proximaSerieBtn" style="flex: 2; padding: 16px 0;">Próxima Série</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="screen" id="historicoScreen">
+        <h1>Histórico</h1>
+        <p class="subtitle">Seus treinos concluídos</p>
+        <div style="display: flex; gap: 8px; margin-bottom: 24px;">
+          <button id="tabSessaoBtn" type="button" class="tab-btn">Por Sessão</button>
+          <button id="tabSemanalBtn" type="button" class="tab-btn secondary-button">Semanal</button>
+        </div>
+        <div class="list-box" id="historicoList">
+          <p class="small-text">Nenhum treino concluído ainda.</p>
+        </div>
+      </div>
+
+      <div class="screen" id="exerciciosScreen">
+        <h1>Exercícios</h1>
+        <p class="subtitle">Gerencie seu banco de exercícios</p>
+
+        <div class="field">
+          <label for="novoExercicioPreDefinido">Novo exercício</label>
+          <div style="width: 100%; display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center;">
+            <input id="novoExercicioPreDefinido" type="text" placeholder="Ex: Leg Press" style="width: 100%; box-sizing: border-box; margin: 0;" />
+            <button id="addExercicioPreDefinidoBtn" type="button" class="secondary-button" style="height: 100%; margin: 0;">Adicionar</button>
+          </div>
+        </div>
+
+        <div class="list-box" id="exerciciosPreDefinidosList"></div>
+      </div>
+    </div>
+
+    <nav class="bottom-nav" id="bottomNav">
+      <button class="nav-item active" id="navTreinos">Treinos</button>
+      <button class="nav-item" id="navExercicios">Exercícios</button>
+      <button class="nav-item" id="navHistorico">Histórico</button>
+    </nav>
+
+    <script src="renderer.js"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('sw.js').then(registration => {
+            console.log('ServiceWorker registrado com sucesso!');
+          }).catch(err => {
+            console.log('Falha ao registrar o ServiceWorker: ', err);
+          });
+        });
+      }
+    </script>
+  </body>
+</html>
