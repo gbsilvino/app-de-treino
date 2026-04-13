@@ -325,6 +325,13 @@
         text-align: center;
         margin: 0;
       }
+      @keyframes fadeSlideIn {
+        from { opacity: 0; transform: scale(0.98) translateY(10px); }
+        to { opacity: 1; transform: scale(1) translateY(0); }
+      }
+      .flashcard-anim {
+        animation: fadeSlideIn 0.25s ease-out forwards;
+      }
     </style>
   </head>
   <body>
@@ -338,6 +345,7 @@
         </div>
         <button id="entrarBtn">Continuar</button>
         <div class="error" id="erroCadastro"></div>
+        <button id="limparDadosBtn" type="button" class="remove-serie-btn" style="width: 100%; margin-top: 16px; padding: 16px; font-size: 16px;">Limpar todos os dados do App</button>
       </div>
 
       <div class="screen" id="treinoScreen">
@@ -387,7 +395,10 @@
         <div class="list-box" id="exercicioList"></div>
 
         <div class="error" id="erroSessao"></div>
-        <button id="iniciarTreinoBtn" style="margin-top: 12px;">Iniciar Treino</button>
+        <div style="display: flex; gap: 12px; margin-top: 12px;">
+          <button type="button" id="limparExerciciosBtn" class="remove-serie-btn" style="flex: 1; padding: 16px 0;">Limpar</button>
+          <button id="iniciarTreinoBtn" style="flex: 2; padding: 16px 0;">Iniciar Treino</button>
+        </div>
       </div>
 
       <div class="screen" id="execucaoScreen">
@@ -397,7 +408,7 @@
         <h1 id="execucaoTitle">Execução</h1>
         <p class="subtitle" id="execucaoSubtitle">Treino em andamento</p>
 
-        <div class="exercicio-item" style="text-align: center; padding: 40px 20px; margin-top: 20px;">
+        <div id="flashcardContainer" class="exercicio-item" style="text-align: center; padding: 40px 20px; margin-top: 20px;">
           <h2 id="flashcardExercicio" style="margin: 0 0 8px 0; font-size: 24px;"></h2>
           <p id="flashcardSerie" class="subtitle" style="margin-top: 0; margin-bottom: 24px; color: #3b82f6;"></p>
           
@@ -424,8 +435,8 @@
           <button id="iniciarCronometroBtn" class="secondary-button" style="margin-bottom: 16px; width: 100%; box-sizing: border-box;">Iniciar Cronômetro</button>
           
           <div style="display: flex; gap: 12px;">
-            <button id="voltarSerieBtn" class="secondary-button" style="flex: 1; padding: 16px 0;">Voltar</button>
-            <button id="proximaSerieBtn" style="flex: 2; padding: 16px 0;">Próxima Série</button>
+            <button id="voltarSerieBtn" class="secondary-button" style="flex: 1; padding: 16px 0; font-size: 24px;">←</button>
+            <button id="proximaSerieBtn" style="flex: 1; padding: 16px 0; font-size: 24px;">→</button>
           </div>
         </div>
       </div>

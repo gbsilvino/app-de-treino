@@ -3,6 +3,7 @@ const treinoScreen = document.getElementById('treinoScreen');
 const sessaoScreen = document.getElementById('sessaoScreen');
 const nomeClienteInput = document.getElementById('nomeCliente');
 const entrarBtn = document.getElementById('entrarBtn');
+const limparDadosBtn = document.getElementById('limparDadosBtn');
 const editarCadastroBtn = document.getElementById('editarCadastroBtn');
 const nomeUsuarioSpan = document.getElementById('nomeUsuario');
 const treinoSelect = document.getElementById('treinoSelect');
@@ -15,6 +16,7 @@ const voltarTreinoBtn = document.getElementById('voltarTreinoBtn');
 const treinoAtualSpan = document.getElementById('treinoAtual');
 const exercicioSelect = document.getElementById('exercicioSelect');
 const adicionarExercicioBtn = document.getElementById('adicionarExercicioBtn');
+const limparExerciciosBtn = document.getElementById('limparExerciciosBtn');
 const exercicioList = document.getElementById('exercicioList');
 const historicoScreen = document.getElementById('historicoScreen');
 const exerciciosScreen = document.getElementById('exerciciosScreen');
@@ -31,6 +33,7 @@ const iniciarTreinoBtn = document.getElementById('iniciarTreinoBtn');
 const execucaoScreen = document.getElementById('execucaoScreen');
 const cancelarExecucaoBtn = document.getElementById('cancelarExecucaoBtn');
 const execucaoTitle = document.getElementById('execucaoTitle');
+const flashcardContainer = document.getElementById('flashcardContainer');
 const flashcardExercicio = document.getElementById('flashcardExercicio');
 const flashcardSerie = document.getElementById('flashcardSerie');
 const flashcardReps = document.getElementById('flashcardReps');
@@ -56,29 +59,51 @@ let exerciciosPreDefinidos = [];
 
 const DEFAULT_TREINOS = ['Treino A', 'Treino B', 'Treino C'];
 const GRUPOS_MUSCULARES = [
-  'Abdômen', 'Antebraço', 'Bíceps', 'Costas', 'Deltoide Anterior',
+  'Abdômen', 'Adutores', 'Antebraço', 'Bíceps', 'Costas', 'Deltoide Anterior',
   'Deltoide Lateral', 'Deltoide Posterior', 'Glúteos', 'Lombar',
   'Panturrilha', 'Peitoral', 'Posterior de Coxa', 'Quadríceps',
   'Trapézio Inferior', 'Trapézio Médio', 'Trapézio Superior', 'Tríceps'
 ];
 
 function salvarEstado() {
-  localStorage.setItem('clienteNome', nomeUsuarioSpan.textContent);
-  localStorage.setItem('treinos', JSON.stringify(treinos));
-  localStorage.setItem('treinoSelecionado', treinoSelecionado);
+  const clienteAtivo = nomeUsuarioSpan.textContent;
+  localStorage.setItem('clienteNome', clienteAtivo);
+  if (clienteAtivo) {
+    localStorage.setItem(`treinos_${clienteAtivo}`, JSON.stringify(treinos));
+    localStorage.setItem(`treinoSelecionado_${clienteAtivo}`, treinoSelecionado);
+  }
   localStorage.setItem('historico', JSON.stringify(historico));
   localStorage.setItem('exerciciosPreDefinidos', JSON.stringify(exerciciosPreDefinidos));
 }
 
-function carregarEstado() {
-  const nomeSalvo = localStorage.getItem('clienteNome');
-  const treinosSalvos = JSON.parse(localStorage.getItem('treinos') || 'null');
-  const selecionadoSalvo = localStorage.getItem('treinoSelecionado');
-  const historicoSalvo = JSON.parse(localStorage.getItem('historico') || '[]');
-  const exerciciosSalvos = JSON.parse(localStorage.getItem('exerciciosPreDefinidos') || 'null');
+function salvarExerciciosDoTreino() {
+  const clienteAtivo = nomeUsuarioSpan.textContent;
+  if (clienteAtivo && treinoSelecionado) {
+    localStorage.setItem(`exercicios_${clienteAtivo}_${treinoSelecionado}`, JSON.stringify(exercicios));
+  }
+}
+
+function carregarEstadoCliente(nome) {
+  let treinosSalvos = JSON.parse(localStorage.getItem(`treinos_${nome}`) || 'null');
+  let selecionadoSalvo = localStorage.getItem(`treinoSelecionado_${nome}`);
+
+  // Migra os treinos antigos globais para o primeiro cliente a logar
+  if (!treinosSalvos && localStorage.getItem('treinos')) {
+    treinosSalvos = JSON.parse(localStorage.getItem('treinos'));
+    selecionadoSalvo = localStorage.getItem('treinoSelecionado');
+    localStorage.removeItem('treinos');
+    localStorage.removeItem('treinoSelecionado');
+  }
 
   treinos = Array.isArray(treinosSalvos) && treinosSalvos.length > 0 ? treinosSalvos : [...DEFAULT_TREINOS];
   treinoSelecionado = selecionadoSalvo || treinos[0] || '';
+}
+
+function carregarEstado() {
+  const nomeSalvo = localStorage.getItem('clienteNome');
+  const historicoSalvo = JSON.parse(localStorage.getItem('historico') || '[]');
+  const exerciciosSalvos = JSON.parse(localStorage.getItem('exerciciosPreDefinidos') || 'null');
+
   historico = Array.isArray(historicoSalvo) ? historicoSalvo : [];
   
   if (Array.isArray(exerciciosSalvos) && exerciciosSalvos.length > 0) {
@@ -89,10 +114,31 @@ function carregarEstado() {
     });
   } else {
     exerciciosPreDefinidos = [
-      { nome: 'Supino Reto', musculos: {} },
-      { nome: 'Agachamento Livre', musculos: {} },
-      { nome: 'Desenvolvimento', musculos: {} },
-      { nome: 'Levantamento Terra', musculos: {} }
+      { nome: 'Supino Reto', musculos: { 'Peitoral': 1, 'Tríceps': 0.5, 'Deltoide Anterior': 0.5 } },
+      { nome: 'Agachamento Livre', musculos: { 'Quadríceps': 1, 'Glúteos': 0.5 } },
+      { nome: 'Desenvolvimento Aberto', musculos: { 'Deltoide Anterior': 1, 'Deltoide Lateral': 0.5, 'Tríceps': 0.5 } },
+      { nome: 'Levantamento Terra', musculos: { 'Lombar': 1, 'Posterior de Coxa': 1, 'Glúteos': 1 } },
+      { nome: 'Supino Inclinado', musculos: { 'Peitoral': 1, 'Deltoide Anterior': 0.5, 'Tríceps': 0.5 } },
+      { nome: 'Supino Declinado', musculos: { 'Peitoral': 1, 'Tríceps': 0.5 } },
+      { nome: 'Puxada Aberta', musculos: { 'Costas': 1, 'Bíceps': 0.5 } },
+      { nome: 'Puxada Fechada', musculos: { 'Costas': 1, 'Bíceps': 0.5 } },
+      { nome: 'Remada Aberta', musculos: { 'Costas': 1, 'Deltoide Posterior': 0.5, 'Bíceps': 0.5 } },
+      { nome: 'Remada Fechada', musculos: { 'Costas': 1, 'Bíceps': 0.5 } },
+      { nome: 'Cadeira Extensora', musculos: { 'Quadríceps': 1 } },
+      { nome: 'Cadeira Flexora', musculos: { 'Posterior de Coxa': 1 } },
+      { nome: 'Mesa Flexora', musculos: { 'Posterior de Coxa': 1 } },
+      { nome: 'Cadeira Adutora', musculos: { 'Adutores': 1 } },
+      { nome: 'Cadeira Abdutora', musculos: { 'Glúteos': 1 } },
+      { nome: 'Crucifixo Reto', musculos: { 'Peitoral': 1 } },
+      { nome: 'Crucifixo Inverso', musculos: { 'Deltoide Posterior': 1 } },
+      { nome: 'Abdução de Ombros', musculos: { 'Deltoide Lateral': 1 } },
+      { nome: 'Stiff', musculos: { 'Posterior de Coxa': 1, 'Glúteos': 0.5, 'Lombar': 0.5 } },
+      { nome: 'Agachamento Búlgaro', musculos: { 'Quadríceps': 1, 'Glúteos': 1 } },
+      { nome: 'Tríceps', musculos: { 'Tríceps': 1 } },
+      { nome: 'Tríceps Testa', musculos: { 'Tríceps': 1 } },
+      { nome: 'Tríceps Francês', musculos: { 'Tríceps': 1 } },
+      { nome: 'Bíceps', musculos: { 'Bíceps': 1 } },
+      { nome: 'Bíceps Scott', musculos: { 'Bíceps': 1 } }
     ];
   }
   
@@ -104,8 +150,11 @@ function carregarEstado() {
   });
 
   if (nomeSalvo) {
+    carregarEstadoCliente(nomeSalvo);
     mostrarTelaPrincipal(nomeSalvo);
   } else {
+    treinos = [...DEFAULT_TREINOS];
+    treinoSelecionado = treinos[0] || '';
     mostrarTelaCadastro();
   }
 }
@@ -235,6 +284,8 @@ function adicionarTreino(novoTreino) {
 
 function removerTreino(treino) {
   treinos = treinos.filter((item) => item !== treino);
+  const clienteAtivo = nomeUsuarioSpan.textContent;
+  localStorage.removeItem(`exercicios_${clienteAtivo}_${treino}`);
   if (treinoSelecionado === treino) {
     treinoSelecionado = treinos[0] || '';
   }
@@ -259,7 +310,13 @@ function mostrarTelaSessao() {
   treinoScreen.classList.remove('active');
   sessaoScreen.classList.add('active');
   bottomNav.classList.add('active');
-  exercicios = [];
+  const clienteAtivo = nomeUsuarioSpan.textContent;
+  const exerciciosSalvos = localStorage.getItem(`exercicios_${clienteAtivo}_${treinoSelecionado}`);
+  if (exerciciosSalvos) {
+    exercicios = JSON.parse(exerciciosSalvos);
+  } else {
+    exercicios = [];
+  }
   erroSessao.textContent = '';
   atualizarListaExercicios();
 }
@@ -280,7 +337,7 @@ function adicionarExercicio(novoExercicio) {
     return;
   }
 
-  exercicios.push({ nome: label, series: [] });
+  exercicios.push({ nome: label, series: [], observacao: '' });
   atualizarListaExercicios();
 }
 
@@ -309,6 +366,7 @@ function removerSerie(exercicioIndex, serieIndex) {
 }
 
 function atualizarListaExercicios() {
+  salvarExerciciosDoTreino();
   exercicioList.innerHTML = '';
 
   if (exercicios.length === 0) {
@@ -363,6 +421,21 @@ function atualizarListaExercicios() {
       header.appendChild(headerActions);
 
     item.appendChild(header);
+
+    const obsInput = document.createElement('input');
+    obsInput.type = 'text';
+    obsInput.placeholder = 'Observações do exercício...';
+    obsInput.value = exercicio.observacao || '';
+    obsInput.style.width = '100%';
+    obsInput.style.boxSizing = 'border-box';
+    obsInput.style.padding = '10px 14px';
+    obsInput.style.marginTop = '12px';
+    obsInput.style.borderRadius = '12px';
+    obsInput.addEventListener('input', (e) => {
+      exercicios[exIndex].observacao = e.target.value;
+      salvarExerciciosDoTreino();
+    });
+    item.appendChild(obsInput);
 
     const contadorContainer = document.createElement('div');
     contadorContainer.style.display = 'flex';
@@ -619,6 +692,9 @@ function renderHistorico() {
 function renderOpcoesExercicios() {
   exercicioSelect.innerHTML = '';
   exerciciosPreDefinidosList.innerHTML = '';
+  
+  // Ordena os exercícios predefinidos em ordem alfabética pelo nome
+  exerciciosPreDefinidos.sort((a, b) => a.nome.localeCompare(b.nome));
 
   if (exerciciosPreDefinidos.length === 0) {
     const aviso = document.createElement('p');
@@ -790,9 +866,21 @@ entrarBtn.addEventListener('click', () => {
     return;
   }
   erroCadastro.textContent = '';
-  treinoSelecionado = treinoSelecionado || treinos[0] || '';
+  carregarEstadoCliente(nome);
   mostrarTelaPrincipal(nome);
 });
+
+if (limparDadosBtn) {
+  limparDadosBtn.addEventListener('click', () => {
+    if (confirm('Tem certeza que deseja apagar TODOS os dados do aplicativo? Esta ação não pode ser desfeita.')) {
+      localStorage.clear();
+      if ('caches' in window) {
+        caches.keys().then(names => names.forEach(name => caches.delete(name)));
+      }
+      window.location.reload();
+    }
+  });
+}
 
 editarCadastroBtn.addEventListener('click', () => {
   mostrarTelaCadastro();
@@ -818,6 +906,15 @@ voltarTreinoBtn.addEventListener('click', () => {
 adicionarExercicioBtn.addEventListener('click', () => {
   adicionarExercicio(exercicioSelect.value);
 });
+
+if (limparExerciciosBtn) {
+  limparExerciciosBtn.addEventListener('click', () => {
+    if (exercicios.length > 0 && confirm('Tem certeza que deseja limpar todos os exercícios deste treino?')) {
+      exercicios = [];
+      atualizarListaExercicios();
+    }
+  });
+}
 
 addExercicioPreDefinidoBtn.addEventListener('click', () => {
   adicionarExercicioPreDefinido(novoExercicioPreDefinido.value);
@@ -892,6 +989,10 @@ iniciarTreinoBtn.addEventListener('click', () => {
 });
 
 function renderizarFlashcard() {
+  flashcardContainer.classList.remove('flashcard-anim');
+  void flashcardContainer.offsetWidth; // Força o navegador a reiniciar a animação
+  flashcardContainer.classList.add('flashcard-anim');
+
   if (serieAtualIndex >= seriesParaExecutar.length) {
     finalizarTreino();
     return;
@@ -899,9 +1000,11 @@ function renderizarFlashcard() {
   
   voltarSerieBtn.disabled = serieAtualIndex === 0;
   if (serieAtualIndex === seriesParaExecutar.length - 1) {
-    proximaSerieBtn.textContent = 'Finalizar Treino';
+    proximaSerieBtn.textContent = 'Finalizar';
+    proximaSerieBtn.style.fontSize = '16px';
   } else {
-    proximaSerieBtn.textContent = 'Próxima Série';
+    proximaSerieBtn.textContent = '→';
+    proximaSerieBtn.style.fontSize = '24px';
   }
 
   const serieAtual = seriesParaExecutar[serieAtualIndex];
@@ -968,6 +1071,7 @@ function finalizarTreino() {
     exercicios: JSON.parse(JSON.stringify(exercicios))
   };
 
+  salvarExerciciosDoTreino();
   historico.unshift(sessao);
   salvarEstado();
   renderHistorico();
