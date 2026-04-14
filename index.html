@@ -332,6 +332,20 @@
       .flashcard-anim {
         animation: fadeSlideIn 0.25s ease-out forwards;
       }
+      @keyframes slideInRight {
+        from { opacity: 0; transform: translateX(50px); }
+        to { opacity: 1; transform: translateX(0); }
+      }
+      @keyframes slideInLeft {
+        from { opacity: 0; transform: translateX(-50px); }
+        to { opacity: 1; transform: translateX(0); }
+      }
+      .flashcard-anim-right {
+        animation: slideInRight 0.2s ease-out forwards;
+      }
+      .flashcard-anim-left {
+        animation: slideInLeft 0.2s ease-out forwards;
+      }
     </style>
   </head>
   <body>

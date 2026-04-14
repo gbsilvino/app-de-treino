@@ -1046,10 +1046,14 @@ iniciarTreinoBtn.addEventListener('click', () => {
   renderizarFlashcard();
 });
 
-function renderizarFlashcard() {
-  flashcardContainer.classList.remove('flashcard-anim');
-  void flashcardContainer.offsetWidth; // Força o navegador a reiniciar a animação
-  flashcardContainer.classList.add('flashcard-anim');
+function renderizarFlashcard(direcath; // Força o navegador a reiniciar a animação
+
+  if (direcao === 'direita') {
+  } else if (direcao === 'esquerda') {
+    flashcardContainer.classList.add('flashcard-anim-left');
+  } else {
+    flashcardContainer.classList.add('flashcard-anim');
+  }
 
   if (serieAtualIndex >= seriesParaExecutar.length) {
     finalizarTreino();
@@ -1087,10 +1091,9 @@ voltarSerieBtn.addEventListener('click', () => {
   if (serieAtualIndex > 0) {
     pararCronometro();
     serieAtualIndex--;
-    renderizarFlashcard();
+    renderizarFlashcard('esquerda');
   }
 });
-
 proximaSerieBtn.addEventListener('click', () => {
   const serieAtual = seriesParaExecutar[serieAtualIndex];
   exercicios[serieAtual.exercicioIndex].series[serieAtual.serieIndex].repeticoes = flashcardReps.value;
@@ -1108,11 +1111,10 @@ proximaSerieBtn.addEventListener('click', () => {
     }
   }
   
-  renderizarFlashcard();
+  renderizarFlashcard('direita');
 });
-
-let touchStartX = 0;
-let touchStartY = 0;
+t touchStartX = 0;
+le
 
 flashcardContainer.addEventListener('touchstart', (e) => {
   touchStartX = e.changedTouches[0].screenX;
