@@ -336,7 +336,18 @@
   </head>
   <body>
     <div class="container">
-      <div class="screen active" id="cadastroScreen">
+      <div class="screen" id="senhaScreen">
+        <h1>Acesso Restrito</h1>
+        <p class="subtitle">Digite a senha para acessar o app.</p>
+        <div class="field">
+          <label for="senhaInput">Senha</label>
+          <input id="senhaInput" type="password" placeholder="Sua senha..." />
+        </div>
+        <button id="entrarSenhaBtn">Acessar</button>
+        <div class="error" id="erroSenha"></div>
+      </div>
+
+      <div class="screen" id="cadastroScreen">
         <h1>Olá!</h1>
         <p class="subtitle">Vamos começar com seu cadastro.</p>
         <div class="field">

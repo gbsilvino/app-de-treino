@@ -1,3 +1,7 @@
+const senhaScreen = document.getElementById('senhaScreen');
+const senhaInput = document.getElementById('senhaInput');
+const entrarSenhaBtn = document.getElementById('entrarSenhaBtn');
+const erroSenha = document.getElementById('erroSenha');
 const cadastroScreen = document.getElementById('cadastroScreen');
 const treinoScreen = document.getElementById('treinoScreen');
 const sessaoScreen = document.getElementById('sessaoScreen');
@@ -56,6 +60,8 @@ let serieAtualIndex = 0;
 let cronometroInterval = null;
 let abaHistoricoAtiva = 'sessao';
 let exerciciosPreDefinidos = [];
+
+const SENHA_DE_ACESSO = 'treino123'; // Altere aqui para a senha desejada
 
 const DEFAULT_TREINOS = ['Treino A', 'Treino B', 'Treino C'];
 const GRUPOS_MUSCULARES = [
@@ -149,17 +155,38 @@ function carregarEstado() {
     if (!h.id) h.id = Math.random().toString(36).substring(2, 9);
   });
 
-  if (nomeSalvo) {
-    carregarEstadoCliente(nomeSalvo);
-    mostrarTelaPrincipal(nomeSalvo);
+  const appAutenticado = localStorage.getItem('appAutenticado') === 'true';
+
+  if (appAutenticado) {
+    if (nomeSalvo) {
+      carregarEstadoCliente(nomeSalvo);
+      mostrarTelaPrincipal(nomeSalvo);
+    } else {
+      treinos = [...DEFAULT_TREINOS];
+      treinoSelecionado = treinos[0] || '';
+      mostrarTelaCadastro();
+    }
   } else {
-    treinos = [...DEFAULT_TREINOS];
-    treinoSelecionado = treinos[0] || '';
-    mostrarTelaCadastro();
+    mostrarTelaSenha();
   }
 }
 
+function mostrarTelaSenha() {
+  senhaScreen.classList.add('active');
+  cadastroScreen.classList.remove('active');
+  treinoScreen.classList.remove('active');
+  sessaoScreen.classList.remove('active');
+  historicoScreen.classList.remove('active');
+  execucaoScreen.classList.remove('active');
+  exerciciosScreen.classList.remove('active');
+  bottomNav.classList.remove('active');
+  senhaInput.value = '';
+  erroSenha.textContent = '';
+  senhaInput.focus();
+}
+
 function mostrarTelaCadastro() {
+  senhaScreen.classList.remove('active');
   cadastroScreen.classList.add('active');
   treinoScreen.classList.remove('active');
   sessaoScreen.classList.remove('active');
@@ -174,6 +201,7 @@ function mostrarTelaCadastro() {
 
 function mostrarTelaPrincipal(nome) {
   nomeUsuarioSpan.textContent = nome;
+  senhaScreen.classList.remove('active');
   cadastroScreen.classList.remove('active');
   sessaoScreen.classList.remove('active');
   historicoScreen.classList.remove('active');
@@ -859,6 +887,23 @@ function removerExercicioPreDefinido(index) {
   salvarEstado();
 }
 
+entrarSenhaBtn.addEventListener('click', () => {
+  const senhaDigitada = senhaInput.value.trim();
+  if (senhaDigitada === SENHA_DE_ACESSO) {
+    localStorage.setItem('appAutenticado', 'true');
+    erroSenha.textContent = '';
+    carregarEstado(); // Redireciona corretamente baseando no usuário
+  } else {
+    erroSenha.textContent = 'Senha incorreta. Tente novamente.';
+  }
+});
+
+senhaInput.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') {
+    entrarSenhaBtn.click();
+  }
+});
+
 entrarBtn.addEventListener('click', () => {
   const nome = nomeClienteInput.value.trim();
   if (!nome) {
@@ -923,26 +968,29 @@ addExercicioPreDefinidoBtn.addEventListener('click', () => {
 function iniciarCronometro(segundos) {
   clearInterval(cronometroInterval);
   cronometroContainer.style.display = 'block';
-  let restante = segundos;
+  
+  // Calcula exatamente a que horas (no relógio do sistema) o cronômetro deve apitar
+  const tempoFim = Date.now() + segundos * 1000;
 
   function atualizarDisplay() {
-    const m = Math.floor(restante / 60).toString().padStart(2, '0');
-    const s = (restante % 60).toString().padStart(2, '0');
-    cronometroDisplay.textContent = `${m}:${s}`;
+    // Calcula a diferença entre o tempo alvo e a hora real de agora
+    let restante = Math.round((tempoFim - Date.now()) / 1000);
     
     if (restante <= 0) {
+      restante = 0;
       clearInterval(cronometroInterval);
       cronometroDisplay.style.color = '#ef4444'; // Fica vermelho quando acaba
     } else {
       cronometroDisplay.style.color = '#10b981'; // Verde enquanto roda
     }
+
+    const m = Math.floor(restante / 60).toString().padStart(2, '0');
+    const s = (restante % 60).toString().padStart(2, '0');
+    cronometroDisplay.textContent = `${m}:${s}`;
   }
 
   atualizarDisplay();
-  cronometroInterval = setInterval(() => {
-    restante--;
-    atualizarDisplay();
-  }, 1000);
+  cronometroInterval = setInterval(atualizarDisplay, 1000);
 }
 
 function pararCronometro() {
