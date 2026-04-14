@@ -1046,9 +1046,12 @@ iniciarTreinoBtn.addEventListener('click', () => {
   renderizarFlashcard();
 });
 
-function renderizarFlashcard(direcath; // Força o navegador a reiniciar a animação
+function renderizarFlashcard(direcao = 'padrao') {
+  flashcardContainer.classList.remove('flashcard-anim', 'flashcard-anim-left', 'flashcard-anim-right');
+  void flashcardContainer.offsetWidth; // Força o navegador a reiniciar a animação
 
   if (direcao === 'direita') {
+    flashcardContainer.classList.add('flashcard-anim-right');
   } else if (direcao === 'esquerda') {
     flashcardContainer.classList.add('flashcard-anim-left');
   } else {
@@ -1113,8 +1116,9 @@ proximaSerieBtn.addEventListener('click', () => {
   
   renderizarFlashcard('direita');
 });
-t touchStartX = 0;
-le
+
+let touchStartX = 0;
+let touchStartY = 0;
 
 flashcardContainer.addEventListener('touchstart', (e) => {
   touchStartX = e.changedTouches[0].screenX;
