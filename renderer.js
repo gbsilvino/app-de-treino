@@ -251,6 +251,16 @@ function atualizarListaTreinos() {
 
     const label = document.createElement('span');
     label.textContent = treino;
+    label.style.cursor = 'pointer';
+    label.style.flex = '1';
+    label.style.fontWeight = '700';
+    label.style.color = '#3b82f6';
+    label.addEventListener('click', () => {
+      treinoSelecionado = treino;
+      renderOpcoesTreinos();
+      salvarEstado();
+      mostrarTelaSessao();
+    });
 
     const itemActions = document.createElement('div');
     itemActions.className = 'item-actions';
@@ -1100,6 +1110,30 @@ proximaSerieBtn.addEventListener('click', () => {
   
   renderizarFlashcard();
 });
+
+let touchStartX = 0;
+let touchStartY = 0;
+
+flashcardContainer.addEventListener('touchstart', (e) => {
+  touchStartX = e.changedTouches[0].screenX;
+  touchStartY = e.changedTouches[0].screenY;
+}, { passive: true });
+
+flashcardContainer.addEventListener('touchend', (e) => {
+  const touchEndX = e.changedTouches[0].screenX;
+  const touchEndY = e.changedTouches[0].screenY;
+  const diffX = touchEndX - touchStartX;
+  const diffY = touchEndY - touchStartY;
+  
+  // Verifica se o movimento foi mais horizontal do que vertical e superou 50 pixels (arraste intencional)
+  if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
+    if (diffX > 0) {
+      if (!voltarSerieBtn.disabled) voltarSerieBtn.click(); // Arrastou para a direita (Voltar)
+    } else {
+      proximaSerieBtn.click(); // Arrastou para a esquerda (Avançar)
+    }
+  }
+}, { passive: true });
 
 cancelarExecucaoBtn.addEventListener('click', () => {
   if (confirm('Deseja realmente cancelar este treino? O progresso não será salvo.')) {
