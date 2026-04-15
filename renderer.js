@@ -50,6 +50,14 @@ const cronometroDisplay = document.getElementById('cronometroDisplay');
 const iniciarCronometroBtn = document.getElementById('iniciarCronometroBtn');
 const voltarSerieBtn = document.getElementById('voltarSerieBtn');
 const proximaSerieBtn = document.getElementById('proximaSerieBtn');
+const execucaoExercicioSelect = document.getElementById('execucaoExercicioSelect');
+const execucaoAdicionarExercicioBtn = document.getElementById('execucaoAdicionarExercicioBtn');
+const execucaoAdicionarSerieBtn = document.getElementById('execucaoAdicionarSerieBtn');
+const tabFlashcardBtn = document.getElementById('tabFlashcardBtn');
+const tabVisaoGeralBtn = document.getElementById('tabVisaoGeralBtn');
+const viewFlashcards = document.getElementById('viewFlashcards');
+const viewVisaoGeral = document.getElementById('viewVisaoGeral');
+const execucaoVisaoGeralList = document.getElementById('execucaoVisaoGeralList');
 const tabSessaoBtn = document.getElementById('tabSessaoBtn');
 const tabSemanalBtn = document.getElementById('tabSemanalBtn');
 
@@ -537,6 +545,9 @@ function renderHistorico() {
 
   if (abaHistoricoAtiva === 'sessao') {
     historicoDoUsuario.forEach((sessao) => {
+      const timelineItem = document.createElement('div');
+      timelineItem.className = 'timeline-item';
+
       const card = document.createElement('div');
       card.className = 'exercicio-item';
 
@@ -624,7 +635,8 @@ function renderHistorico() {
         }
       }
 
-      historicoList.appendChild(card);
+      timelineItem.appendChild(card);
+      historicoList.appendChild(timelineItem);
     });
   } else {
     const gruposSemanais = [];
@@ -652,6 +664,9 @@ function renderHistorico() {
     });
 
     gruposSemanais.forEach(grupo => {
+      const timelineItem = document.createElement('div');
+      timelineItem.className = 'timeline-item';
+
       const card = document.createElement('div');
       card.className = 'exercicio-item';
 
@@ -724,13 +739,15 @@ function renderHistorico() {
         });
         card.appendChild(tagsDiv);
       }
-      historicoList.appendChild(card);
+      timelineItem.appendChild(card);
+      historicoList.appendChild(timelineItem);
     });
   }
 }
 
 function renderOpcoesExercicios() {
   exercicioSelect.innerHTML = '';
+  if (execucaoExercicioSelect) execucaoExercicioSelect.innerHTML = '';
   exerciciosPreDefinidosList.innerHTML = '';
   
   // Ordena os exercícios predefinidos em ordem alfabética pelo nome
@@ -746,6 +763,7 @@ function renderOpcoesExercicios() {
     option.value = '';
     option.textContent = 'Nenhum exercício disponível';
     exercicioSelect.appendChild(option);
+    if (execucaoExercicioSelect) execucaoExercicioSelect.appendChild(option.cloneNode(true));
     return;
   }
 
@@ -754,6 +772,7 @@ function renderOpcoesExercicios() {
     option.value = ex.nome;
     option.textContent = ex.nome;
     exercicioSelect.appendChild(option);
+    if (execucaoExercicioSelect) execucaoExercicioSelect.appendChild(option.cloneNode(true));
 
     const item = document.createElement('div');
     item.className = 'exercicio-item';
@@ -1042,6 +1061,11 @@ iniciarTreinoBtn.addEventListener('click', () => {
   serieAtualIndex = 0;
   execucaoTitle.textContent = treinoSelecionado;
   
+  if (tabFlashcardBtn) tabFlashcardBtn.className = 'tab-btn';
+  if (tabVisaoGeralBtn) tabVisaoGeralBtn.className = 'tab-btn secondary-button';
+  if (viewFlashcards) viewFlashcards.style.display = 'block';
+  if (viewVisaoGeral) viewVisaoGeral.style.display = 'none';
+
   sessaoScreen.classList.remove('active');
   bottomNav.classList.remove('active');
   execucaoScreen.classList.add('active');
@@ -1163,6 +1187,115 @@ proximaSerieBtn.addEventListener('click', () => {
   renderizarFlashcard('direita');
 });
 
+if (execucaoAdicionarSerieBtn) {
+  execucaoAdicionarSerieBtn.addEventListener('click', () => {
+    if (seriesParaExecutar.length === 0 || serieAtualIndex >= seriesParaExecutar.length) return;
+
+    const serieAtual = seriesParaExecutar[serieAtualIndex];
+    const exIndex = serieAtual.exercicioIndex;
+    const ex = exercicios[exIndex];
+    
+    ex.series.push({ repeticoes: '', carga: '', descanso: '60' });
+    salvarExerciciosDoTreino();
+
+    let insertIndex = serieAtualIndex + 1;
+    while (insertIndex < seriesParaExecutar.length && seriesParaExecutar[insertIndex].exercicioIndex === exIndex) {
+      insertIndex++;
+    }
+
+    const newTotal = ex.series.length;
+    seriesParaExecutar.forEach(s => {
+      if (s.exercicioIndex === exIndex) {
+        s.totalSeries = newTotal;
+      }
+    });
+
+    const novaSerie = {
+      exercicioIndex: exIndex,
+      serieIndex: newTotal - 1,
+      nomeExercicio: ex.nome,
+      totalSeries: newTotal,
+      serieNumero: newTotal,
+      repeticoes: '',
+      carga: '',
+      descanso: '60',
+      preenchida: false
+    };
+
+    seriesParaExecutar.splice(insertIndex, 0, novaSerie);
+    renderizarFlashcard();
+  });
+}
+
+if (execucaoAdicionarExercicioBtn) {
+  execucaoAdicionarExercicioBtn.addEventListener('click', () => {
+    const label = execucaoExercicioSelect.value;
+    if (!label) return;
+
+    let exIndex = exercicios.findIndex(ex => ex.nome === label);
+    
+    if (exIndex === -1) {
+      exercicios.push({ nome: label, series: [{ repeticoes: '', carga: '', descanso: '60' }], observacao: '' });
+      exIndex = exercicios.length - 1;
+      salvarExerciciosDoTreino();
+      
+      seriesParaExecutar.push({
+        exercicioIndex: exIndex,
+        serieIndex: 0,
+        nomeExercicio: label,
+        totalSeries: 1,
+        serieNumero: 1,
+        repeticoes: '',
+        carga: '',
+        descanso: '60',
+        preenchida: false
+      });
+      renderizarFlashcard();
+      alert(`O exercício ${label} foi adicionado ao final do treino.`);
+      if (viewVisaoGeral && viewVisaoGeral.style.display === 'block') {
+        renderVisaoGeralExecucao();
+      }
+    } else {
+      const ex = exercicios[exIndex];
+      ex.series.push({ repeticoes: '', carga: '', descanso: '60' });
+      salvarExerciciosDoTreino();
+      const newTotal = ex.series.length;
+      
+      seriesParaExecutar.forEach(s => {
+        if (s.exercicioIndex === exIndex) {
+          s.totalSeries = newTotal;
+        }
+      });
+      
+      let insertIndex = 0;
+      for (let i = seriesParaExecutar.length - 1; i >= 0; i--) {
+        if (seriesParaExecutar[i].exercicioIndex === exIndex) {
+          insertIndex = i + 1;
+          break;
+        }
+      }
+
+      seriesParaExecutar.splice(insertIndex, 0, {
+        exercicioIndex: exIndex,
+        serieIndex: newTotal - 1,
+        nomeExercicio: label,
+        totalSeries: newTotal,
+        serieNumero: newTotal,
+        repeticoes: '',
+        carga: '',
+        descanso: '60',
+        preenchida: false
+      });
+      
+      renderizarFlashcard();
+      alert(`Uma nova série de ${label} foi adicionada ao bloco existente.`);
+      if (viewVisaoGeral && viewVisaoGeral.style.display === 'block') {
+        renderVisaoGeralExecucao();
+      }
+    }
+  });
+}
+
 let touchStartX = 0;
 let touchStartY = 0;
 let currentTranslateX = 0;
@@ -1170,6 +1303,8 @@ let isDragging = false;
 let isScrolling = false;
 
 flashcardContainer.addEventListener('touchstart', (e) => {
+  if (e.target.closest('input, button, label')) return;
+
   touchStartX = e.changedTouches[0].screenX;
   touchStartY = e.changedTouches[0].screenY;
   isDragging = false;
@@ -1179,6 +1314,8 @@ flashcardContainer.addEventListener('touchstart', (e) => {
 }, { passive: true });
 
 flashcardContainer.addEventListener('touchmove', (e) => {
+  if (e.target.closest('input, button, label')) return;
+
   if (isScrolling) return; // Se o usuário está rolando a tela para baixo/cima, não arrasta o card
 
   const touchCurrentX = e.changedTouches[0].screenX;
@@ -1202,6 +1339,8 @@ flashcardContainer.addEventListener('touchmove', (e) => {
 }, { passive: true });
 
 flashcardContainer.addEventListener('touchend', (e) => {
+  if (e.target.closest('input, button, label')) return;
+
   if (!isDragging) return;
   isDragging = false;
   
@@ -1259,12 +1398,25 @@ finalizarAntecipadoBtn.addEventListener('click', () => {
 function finalizarTreino(exerciciosFinalizados = null) {
   pararCronometro();
 
+  let exerciciosParaHistorico = exerciciosFinalizados || JSON.parse(JSON.stringify(exercicios));
+
+  // Filtra as séries mantendo apenas aquelas com repetições preenchidas e > 0
+  exerciciosParaHistorico.forEach(ex => {
+    ex.series = ex.series.filter(serie => {
+      const reps = parseInt(serie.repeticoes, 10);
+      return !isNaN(reps) && reps > 0;
+    });
+  });
+
+  // Remove os exercícios que ficaram sem nenhuma série válida
+  exerciciosParaHistorico = exerciciosParaHistorico.filter(ex => ex.series.length > 0);
+
   const sessao = {
     id: Date.now().toString(),
     cliente: nomeUsuarioSpan.textContent,
     data: new Date().toISOString(),
     treino: treinoSelecionado,
-    exercicios: exerciciosFinalizados || JSON.parse(JSON.stringify(exercicios))
+    exercicios: exerciciosParaHistorico
   };
 
   salvarExerciciosDoTreino();
@@ -1326,6 +1478,239 @@ tabSemanalBtn.addEventListener('click', () => {
   tabSessaoBtn.className = 'tab-btn secondary-button';
   renderHistorico();
 });
+
+if (tabFlashcardBtn && tabVisaoGeralBtn) {
+  tabFlashcardBtn.addEventListener('click', () => {
+    tabFlashcardBtn.className = 'tab-btn';
+    tabVisaoGeralBtn.className = 'tab-btn secondary-button';
+    viewFlashcards.style.display = 'block';
+    viewVisaoGeral.style.display = 'none';
+  });
+  tabVisaoGeralBtn.addEventListener('click', () => {
+    tabVisaoGeralBtn.className = 'tab-btn';
+    tabFlashcardBtn.className = 'tab-btn secondary-button';
+    viewVisaoGeral.style.display = 'block';
+    viewFlashcards.style.display = 'none';
+    renderVisaoGeralExecucao();
+  });
+}
+
+function removerExercicioExecucao(exIndex) {
+  if (!confirm('Deseja realmente remover este exercício do treino atual?')) return;
+
+  exercicios.splice(exIndex, 1);
+  salvarExerciciosDoTreino();
+
+  seriesParaExecutar = seriesParaExecutar.filter(s => s.exercicioIndex !== exIndex);
+
+  seriesParaExecutar.forEach(s => {
+    if (s.exercicioIndex > exIndex) {
+      s.exercicioIndex--;
+    }
+  });
+
+  if (serieAtualIndex >= seriesParaExecutar.length) {
+    serieAtualIndex = Math.max(0, seriesParaExecutar.length - 1);
+  }
+
+  if (seriesParaExecutar.length === 0) {
+    alert('Todos os exercícios foram removidos. Finalizando treino.');
+    finalizarTreino();
+    return;
+  }
+
+  renderizarFlashcard();
+  renderVisaoGeralExecucao();
+}
+
+function renderVisaoGeralExecucao() {
+  if (!execucaoVisaoGeralList) return;
+  execucaoVisaoGeralList.innerHTML = '';
+
+  if (exercicios.length === 0) {
+    const aviso = document.createElement('p');
+    aviso.className = 'small-text';
+    aviso.textContent = 'Nenhum exercício no treino.';
+    execucaoVisaoGeralList.appendChild(aviso);
+    return;
+  }
+
+  exercicios.forEach((exercicio, exIndex) => {
+    const item = document.createElement('div');
+    item.className = 'list-item';
+    item.style.flexDirection = 'column';
+    item.style.alignItems = 'flex-start';
+
+    const topRow = document.createElement('div');
+    topRow.style.display = 'flex';
+    topRow.style.width = '100%';
+    topRow.style.justifyContent = 'space-between';
+    topRow.style.alignItems = 'center';
+
+    const title = document.createElement('span');
+    title.textContent = exercicio.nome;
+    title.style.fontWeight = '700';
+    title.style.fontSize = '16px';
+    title.style.color = '#0f172a';
+
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.textContent = 'Remover';
+    removeBtn.addEventListener('click', () => removerExercicioExecucao(exIndex));
+
+    topRow.appendChild(title);
+    topRow.appendChild(removeBtn);
+    item.appendChild(topRow);
+
+    const setsOfThisEx = seriesParaExecutar.filter(s => s.exercicioIndex === exIndex);
+    const completedSets = setsOfThisEx.filter(s => s.preenchida).length;
+    
+    const progress = document.createElement('span');
+    progress.className = 'small-text';
+    progress.style.marginTop = '6px';
+    progress.style.fontWeight = '600';
+    progress.style.color = completedSets === setsOfThisEx.length ? '#10b981' : '#64748b';
+    progress.textContent = `${completedSets} de ${setsOfThisEx.length} séries concluídas`;
+    item.appendChild(progress);
+
+    const contadorContainer = document.createElement('div');
+    contadorContainer.style.display = 'flex';
+    contadorContainer.style.alignItems = 'center';
+    contadorContainer.style.justifyContent = 'space-between';
+    contadorContainer.style.marginTop = '16px';
+    contadorContainer.style.width = '100%';
+
+    const contadorLabel = document.createElement('span');
+    contadorLabel.textContent = `Séries: ${setsOfThisEx.length}`;
+    contadorLabel.style.fontWeight = '700';
+
+    const controlesDiv = document.createElement('div');
+    controlesDiv.style.display = 'flex';
+    controlesDiv.style.gap = '8px';
+
+    const removeSerieBtn = document.createElement('button');
+    removeSerieBtn.type = 'button';
+    removeSerieBtn.className = 'remove-serie-btn';
+    removeSerieBtn.textContent = '-';
+    removeSerieBtn.style.padding = '8px 16px';
+    removeSerieBtn.disabled = setsOfThisEx.length === 0 || (setsOfThisEx.length > 0 && setsOfThisEx[setsOfThisEx.length - 1].preenchida);
+    removeSerieBtn.addEventListener('click', () => removerSerieExecucao(exIndex));
+
+    const addSerieBtn = document.createElement('button');
+    addSerieBtn.type = 'button';
+    addSerieBtn.className = 'add-serie-btn';
+    addSerieBtn.textContent = '+';
+    addSerieBtn.style.padding = '8px 16px';
+    addSerieBtn.addEventListener('click', () => adicionarSerieExecucao(exIndex));
+
+    controlesDiv.appendChild(removeSerieBtn);
+    controlesDiv.appendChild(addSerieBtn);
+    
+    contadorContainer.appendChild(contadorLabel);
+    contadorContainer.appendChild(controlesDiv);
+
+    item.appendChild(contadorContainer);
+
+    execucaoVisaoGeralList.appendChild(item);
+  });
+}
+
+function adicionarSerieExecucao(exIndex) {
+  const ex = exercicios[exIndex];
+  if (!ex) return;
+
+  ex.series.push({ repeticoes: '', carga: '', descanso: '60' });
+  salvarExerciciosDoTreino();
+
+  const newTotal = ex.series.length;
+  const newSerieIndex = newTotal - 1;
+
+  seriesParaExecutar.forEach(s => {
+    if (s.exercicioIndex === exIndex) {
+      s.totalSeries = newTotal;
+    }
+  });
+
+  let insertIndex = -1;
+  for (let i = seriesParaExecutar.length - 1; i >= 0; i--) {
+    if (seriesParaExecutar[i].exercicioIndex === exIndex) {
+      insertIndex = i + 1;
+      break;
+    }
+  }
+
+  if (insertIndex === -1) {
+    let lastIndexOfPreviousEx = -1;
+    for (let i = seriesParaExecutar.length - 1; i >= 0; i--) {
+        if (seriesParaExecutar[i].exercicioIndex < exIndex) {
+            lastIndexOfPreviousEx = i;
+            break;
+        }
+    }
+    insertIndex = lastIndexOfPreviousEx + 1;
+  }
+
+  const novaSerie = {
+    exercicioIndex: exIndex,
+    serieIndex: newSerieIndex,
+    nomeExercicio: ex.nome,
+    totalSeries: newTotal,
+    serieNumero: newTotal,
+    repeticoes: '',
+    carga: '',
+    descanso: '60',
+    preenchida: false
+  };
+
+  seriesParaExecutar.splice(insertIndex, 0, novaSerie);
+
+  if (insertIndex <= serieAtualIndex) {
+    serieAtualIndex++;
+  }
+
+  renderVisaoGeralExecucao();
+  renderizarFlashcard();
+}
+
+function removerSerieExecucao(exIndex) {
+  const ex = exercicios[exIndex];
+  if (!ex || ex.series.length === 0) return;
+
+  const serieIndexToRemove = ex.series.length - 1;
+
+  const removeQueueIndex = seriesParaExecutar.findIndex(s => s.exercicioIndex === exIndex && s.serieIndex === serieIndexToRemove);
+
+  if (removeQueueIndex === -1) {
+    ex.series.pop();
+    salvarExerciciosDoTreino();
+    renderVisaoGeralExecucao();
+    return;
+  }
+
+  if (seriesParaExecutar[removeQueueIndex].preenchida) {
+    alert('Não é possível remover séries que já foram concluídas.');
+    return;
+  }
+
+  ex.series.pop();
+  salvarExerciciosDoTreino();
+
+  seriesParaExecutar.splice(removeQueueIndex, 1);
+
+  if (serieAtualIndex >= removeQueueIndex && serieAtualIndex > 0) {
+    serieAtualIndex--;
+  }
+
+  const newTotal = ex.series.length;
+  seriesParaExecutar.forEach(s => {
+    if (s.exercicioIndex === exIndex) {
+      s.totalSeries = newTotal;
+    }
+  });
+
+  renderVisaoGeralExecucao();
+  renderizarFlashcard();
+}
 
 window.addEventListener('load', () => {
   carregarEstado();

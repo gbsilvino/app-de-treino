@@ -198,20 +198,21 @@
         border-radius: 16px;
         background: #f8fafc;
         border: 1px solid #e2e8f0;
-        padding: 14px 18px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        cursor: pointer;
       }
       .select-card::after {
         content: '▾';
         font-size: 20px;
         color: #64748b;
+        position: absolute;
+        right: 18px;
+        top: 50%;
+        transform: translateY(-50%);
+        pointer-events: none;
       }
       .select-card select {
         width: 100%;
+        box-sizing: border-box;
+        padding: 14px 40px 14px 18px;
         border: none;
         background: transparent;
         font-size: 18px;
@@ -349,6 +350,42 @@
       .flashcard-anim-left {
         animation: slideInLeft 0.2s ease-out forwards;
       }
+      .timeline-item {
+        position: relative;
+        padding-left: 32px;
+        margin-bottom: 24px;
+      }
+      .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: 6px;
+        top: 21px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #3b82f6;
+        box-shadow: 0 0 0 4px #ffffff;
+        z-index: 2;
+      }
+      .timeline-item::after {
+        content: '';
+        position: absolute;
+        left: 11px;
+        top: 21px;
+        height: calc(100% + 24px);
+        width: 2px;
+        background: #e2e8f0;
+        z-index: 1;
+      }
+      .timeline-item:last-child::after {
+        display: none;
+      }
+      .timeline-item:last-child {
+        margin-bottom: 0;
+      }
+      .timeline-item .exercicio-item {
+        margin-bottom: 0;
+      }
     </style>
   </head>
   <body>
@@ -383,24 +420,23 @@
         <h1>Olá, <span id="nomeUsuario">cliente</span></h1>
         <p class="subtitle">Hoje é dia de treinar o que?</p>
 
-        <div class="field">
-          <label for="treinoSelect">Caixa de seleção</label>
-          <div class="select-card">
+        <div class="exercicio-item" style="padding: 24px 20px; margin-bottom: 32px; border: 2px solid #3b82f6; background: #eff6ff;">
+          <h3 style="margin-top: 0; margin-bottom: 16px; font-size: 18px; color: #1e3a8a;">Treino Selecionado</h3>
+          <div class="select-card" style="width: 100%; box-sizing: border-box; margin-bottom: 16px; background: #ffffff;">
             <select id="treinoSelect"></select>
           </div>
+          <button id="confirmarTreinoBtn" style="width: 100%; box-sizing: border-box;">Abrir Treino</button>
         </div>
 
-        <button id="confirmarTreinoBtn">Iniciar treino</button>
-
-        <div class="list-box" id="treinoList"></div>
-
-        <div class="field">
-          <label for="novoTreino">Novo treino</label>
-          <div style="width: auto-2px; display: grid; grid-template-columns: 1fr auto; gap: 30px;">
-            <input id="novoTreino" type="text" placeholder="Treino D"/>
-            <button id="adicionarTreinoBtn" type="button" class="secondary-button">Adicionar</button>
+        <h3 style="font-size: 18px; margin-bottom: 16px; color: #111827;">Gerenciar Treinos</h3>
+        <div class="field" style="margin-bottom: 16px;">
+          <div style="width: 100%; display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center;">
+            <input id="novoTreino" type="text" placeholder="Nome do novo treino..." style="width: 100%; box-sizing: border-box; margin: 0;" />
+            <button id="adicionarTreinoBtn" type="button" class="secondary-button" style="height: 100%; margin: 0;">Adicionar</button>
           </div>
         </div>
+        
+        <div class="list-box" id="treinoList" style="margin-top: 0;"></div>
       </div>
 
       <div class="screen" id="sessaoScreen">
@@ -437,7 +473,13 @@
         <h1 id="execucaoTitle">Execução</h1>
         <p class="subtitle" id="execucaoSubtitle">Treino em andamento</p>
 
-        <div id="flashcardContainer" class="exercicio-item" style="text-align: center; padding: 40px 20px; margin-top: 20px; touch-action: pan-y;">
+        <div style="display: flex; gap: 8px; margin-bottom: 24px;">
+          <button id="tabFlashcardBtn" type="button" class="tab-btn">Flashcards</button>
+          <button id="tabVisaoGeralBtn" type="button" class="tab-btn secondary-button">Visão Geral</button>
+        </div>
+
+        <div id="viewFlashcards">
+          <div id="flashcardContainer" class="exercicio-item" style="text-align: center; padding: 40px 20px; touch-action: pan-y;">
           <h2 id="flashcardExercicio" style="margin: 0 0 8px 0; font-size: 24px;"></h2>
           <p id="flashcardSerie" class="subtitle" style="margin-top: 0; margin-bottom: 24px; color: #3b82f6;"></p>
           
@@ -449,15 +491,15 @@
           <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-bottom: 32px; text-align: left;">
             <div>
               <label for="flashcardReps">Repetições</label>
-              <input type="number" id="flashcardReps" style="width: 80px; text-align: center;" />
+              <input type="text" inputmode="numeric" id="flashcardReps" style="width: 80px; text-align: center;" />
             </div>
             <div>
               <label for="flashcardCarga">Carga (kg)</label>
-              <input type="number" id="flashcardCarga" style="width: 80px; text-align: center;" />
+              <input type="text" inputmode="numeric" id="flashcardCarga" style="width: 80px; text-align: center;" />
             </div>
             <div>
               <label for="flashcardDescanso">Descanso (s)</label>
-              <input type="number" id="flashcardDescanso" value="60" style="width: 80px; text-align: center;" />
+              <input type="text" inputmode="numeric" id="flashcardDescanso" value="60" style="width: 80px; text-align: center;" />
             </div>
           </div>
           
@@ -474,7 +516,25 @@
           </div>
           <button id="iniciarCronometroBtn" class="secondary-button" style="width: 100%; box-sizing: border-box;">Iniciar Cronômetro</button>
         </div>
+        
+        <button id="execucaoAdicionarSerieBtn" type="button" style="width: 100%; box-sizing: border-box; padding: 12px; background: #10b981; color: #ffffff; border: none; border-radius: 16px; font-weight: 700; font-size: 16px;">+ Adicionar Série ao Exercício Atual</button>
       </div>
+
+      <div id="viewVisaoGeral" style="display: none;">
+        <div class="exercicio-item" style="padding: 20px; margin-bottom: 24px;">
+          <h3 style="margin-top: 0; margin-bottom: 12px; font-size: 16px; color: #475569;">Adicionar ao Treino</h3>
+          <div style="display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center;">
+            <div class="select-card" style="width: 100%; box-sizing: border-box;">
+              <select id="execucaoExercicioSelect" style="font-size: 14px; padding: 10px 36px 10px 14px;"></select>
+            </div>
+            <button id="execucaoAdicionarExercicioBtn" type="button" style="background: #d1fae5; color: #059669; border: none; border-radius: 12px; padding: 10px 16px; font-weight: 700; width: auto; white-space: nowrap;">+ Adicionar</button>
+          </div>
+        </div>
+
+        <h3 style="font-size: 18px; margin-bottom: 16px;">Lista de Exercícios</h3>
+        <div class="list-box" id="execucaoVisaoGeralList"></div>
+      </div>
+    </div>
 
       <div class="screen" id="historicoScreen">
         <h1>Histórico</h1>
