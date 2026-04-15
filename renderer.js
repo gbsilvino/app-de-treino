@@ -36,6 +36,7 @@ const erroSessao = document.getElementById('erroSessao');
 const iniciarTreinoBtn = document.getElementById('iniciarTreinoBtn');
 const execucaoScreen = document.getElementById('execucaoScreen');
 const cancelarExecucaoBtn = document.getElementById('cancelarExecucaoBtn');
+const finalizarAntecipadoBtn = document.getElementById('finalizarAntecipadoBtn');
 const execucaoTitle = document.getElementById('execucaoTitle');
 const flashcardContainer = document.getElementById('flashcardContainer');
 const flashcardExercicio = document.getElementById('flashcardExercicio');
@@ -43,6 +44,7 @@ const flashcardSerie = document.getElementById('flashcardSerie');
 const flashcardReps = document.getElementById('flashcardReps');
 const flashcardCarga = document.getElementById('flashcardCarga');
 const flashcardDescanso = document.getElementById('flashcardDescanso');
+const flashcardObservacao = document.getElementById('flashcardObservacao');
 const cronometroContainer = document.getElementById('cronometroContainer');
 const cronometroDisplay = document.getElementById('cronometroDisplay');
 const iniciarCronometroBtn = document.getElementById('iniciarCronometroBtn');
@@ -61,7 +63,7 @@ let cronometroInterval = null;
 let abaHistoricoAtiva = 'sessao';
 let exerciciosPreDefinidos = [];
 
-const SENHA_DE_ACESSO = 'treino123'; // Altere aqui para a senha desejada
+const SENHA_DE_ACESSO = 'gabrielgostoso123'; // Altere aqui para a senha desejada
 
 const DEFAULT_TREINOS = ['Treino A', 'Treino B', 'Treino C'];
 const GRUPOS_MUSCULARES = [
@@ -1025,7 +1027,8 @@ iniciarTreinoBtn.addEventListener('click', () => {
         serieNumero: sIndex + 1,
         repeticoes: ex.series[sIndex].repeticoes,
         carga: ex.series[sIndex].carga,
-        descanso: ex.series[sIndex].descanso || '60'
+        descanso: ex.series[sIndex].descanso || '60',
+        preenchida: false
       });
     }
   }
@@ -1047,6 +1050,9 @@ iniciarTreinoBtn.addEventListener('click', () => {
 });
 
 function renderizarFlashcard(direcao = 'padrao') {
+  flashcardContainer.style.transform = '';
+  flashcardContainer.style.transition = '';
+
   flashcardContainer.classList.remove('flashcard-anim', 'flashcard-anim-left', 'flashcard-anim-right');
   void flashcardContainer.offsetWidth; // Força o navegador a reiniciar a animação
 
@@ -1075,16 +1081,56 @@ function renderizarFlashcard(direcao = 'padrao') {
   const serieAtual = seriesParaExecutar[serieAtualIndex];
   flashcardExercicio.textContent = serieAtual.nomeExercicio;
   flashcardSerie.textContent = `Série ${serieAtual.serieNumero} de ${serieAtual.totalSeries}`;
-  flashcardReps.value = serieAtual.repeticoes;
-  flashcardCarga.value = serieAtual.carga;
-  flashcardDescanso.value = serieAtual.descanso;
+  flashcardObservacao.value = exercicios[serieAtual.exercicioIndex].observacao || '';
+
+  let placeholderReps = serieAtual.repeticoes || '';
+  let placeholderCarga = serieAtual.carga || '';
+  let placeholderDescanso = serieAtual.descanso || '60';
+
+  // Obtém a sugestão baseada na última vez que este treino foi executado
+  const historicoDoUsuario = historico.filter(h => h.cliente === nomeUsuarioSpan.textContent && h.treino === treinoSelecionado);
+  if (historicoDoUsuario.length > 0) {
+    const ultimaSessao = historicoDoUsuario[0];
+    const exHistorico = ultimaSessao.exercicios.find(e => e.nome === serieAtual.nomeExercicio);
+    if (exHistorico && exHistorico.series.length > serieAtual.serieIndex) {
+      placeholderReps = exHistorico.series[serieAtual.serieIndex].repeticoes || placeholderReps;
+      placeholderCarga = exHistorico.series[serieAtual.serieIndex].carga || placeholderCarga;
+      placeholderDescanso = exHistorico.series[serieAtual.serieIndex].descanso || placeholderDescanso;
+    }
+  }
+
+  flashcardReps.placeholder = placeholderReps;
+  flashcardCarga.placeholder = placeholderCarga;
+  flashcardDescanso.placeholder = placeholderDescanso;
+
+  // Se a série atual já foi preenchida (quando o usuário volta no card), mantém os dados digitados
+  if (serieAtual.preenchida) {
+    flashcardReps.value = serieAtual.repeticoes;
+    flashcardCarga.value = serieAtual.carga;
+    flashcardDescanso.value = serieAtual.descanso;
+  } else {
+    flashcardReps.value = '';
+    flashcardCarga.value = '';
+    flashcardDescanso.value = '';
+  }
 }
+
+flashcardObservacao.addEventListener('input', (e) => {
+  const serieAtual = seriesParaExecutar[serieAtualIndex];
+  if (serieAtual) {
+    exercicios[serieAtual.exercicioIndex].observacao = e.target.value;
+    salvarExerciciosDoTreino();
+  }
+});
 
 iniciarCronometroBtn.addEventListener('click', () => {
   const serieAtual = seriesParaExecutar[serieAtualIndex];
-  exercicios[serieAtual.exercicioIndex].series[serieAtual.serieIndex].descanso = flashcardDescanso.value;
+  const descansoSalvar = flashcardDescanso.value || flashcardDescanso.placeholder;
+  
+  exercicios[serieAtual.exercicioIndex].series[serieAtual.serieIndex].descanso = descansoSalvar;
+  serieAtual.descanso = descansoSalvar;
 
-  const tempoDescanso = parseInt(flashcardDescanso.value) || 0;
+  const tempoDescanso = parseInt(descansoSalvar) || 0;
   if (tempoDescanso > 0) {
     iniciarCronometro(tempoDescanso);
   }
@@ -1092,53 +1138,90 @@ iniciarCronometroBtn.addEventListener('click', () => {
 
 voltarSerieBtn.addEventListener('click', () => {
   if (serieAtualIndex > 0) {
-    pararCronometro();
     serieAtualIndex--;
     renderizarFlashcard('esquerda');
   }
 });
 proximaSerieBtn.addEventListener('click', () => {
   const serieAtual = seriesParaExecutar[serieAtualIndex];
-  exercicios[serieAtual.exercicioIndex].series[serieAtual.serieIndex].repeticoes = flashcardReps.value;
-  exercicios[serieAtual.exercicioIndex].series[serieAtual.serieIndex].carga = flashcardCarga.value;
-  exercicios[serieAtual.exercicioIndex].series[serieAtual.serieIndex].descanso = flashcardDescanso.value;
-
-  pararCronometro();
-  serieAtualIndex++;
   
-  if (serieAtualIndex < seriesParaExecutar.length) {
-    const proximaSerie = seriesParaExecutar[serieAtualIndex];
-    if (proximaSerie.exercicioIndex === serieAtual.exercicioIndex) {
-      if (!proximaSerie.repeticoes) proximaSerie.repeticoes = flashcardReps.value;
-      if (!proximaSerie.carga) proximaSerie.carga = flashcardCarga.value;
-    }
-  }
+  const repsSalvar = flashcardReps.value || flashcardReps.placeholder;
+  const cargaSalvar = flashcardCarga.value || flashcardCarga.placeholder;
+  const descansoSalvar = flashcardDescanso.value || flashcardDescanso.placeholder;
+
+  exercicios[serieAtual.exercicioIndex].series[serieAtual.serieIndex].repeticoes = repsSalvar;
+  exercicios[serieAtual.exercicioIndex].series[serieAtual.serieIndex].carga = cargaSalvar;
+  exercicios[serieAtual.exercicioIndex].series[serieAtual.serieIndex].descanso = descansoSalvar;
+
+  serieAtual.repeticoes = repsSalvar;
+  serieAtual.carga = cargaSalvar;
+  serieAtual.descanso = descansoSalvar;
+  serieAtual.preenchida = true; // Marca a série como preenchida para que os dados sejam exibidos se o usuário voltar
+
+  serieAtualIndex++;
   
   renderizarFlashcard('direita');
 });
 
 let touchStartX = 0;
 let touchStartY = 0;
+let currentTranslateX = 0;
+let isDragging = false;
+let isScrolling = false;
 
 flashcardContainer.addEventListener('touchstart', (e) => {
   touchStartX = e.changedTouches[0].screenX;
   touchStartY = e.changedTouches[0].screenY;
+  isDragging = false;
+  isScrolling = false;
+  currentTranslateX = 0;
+  flashcardContainer.style.transition = 'none'; // Remove a transição para rastrear o dedo 1:1
+}, { passive: true });
+
+flashcardContainer.addEventListener('touchmove', (e) => {
+  if (isScrolling) return; // Se o usuário está rolando a tela para baixo/cima, não arrasta o card
+
+  const touchCurrentX = e.changedTouches[0].screenX;
+  const touchCurrentY = e.changedTouches[0].screenY;
+  const diffX = touchCurrentX - touchStartX;
+  const diffY = touchCurrentY - touchStartY;
+
+  // Determina se é scroll vertical ou arraste horizontal no primeiro movimento
+  if (!isDragging && !isScrolling) {
+    if (Math.abs(diffY) > Math.abs(diffX)) {
+      isScrolling = true;
+      return;
+    }
+    isDragging = true;
+  }
+
+  if (isDragging) {
+    currentTranslateX = diffX;
+    flashcardContainer.style.transform = `translateX(${currentTranslateX}px)`;
+  }
 }, { passive: true });
 
 flashcardContainer.addEventListener('touchend', (e) => {
-  const touchEndX = e.changedTouches[0].screenX;
-  const touchEndY = e.changedTouches[0].screenY;
-  const diffX = touchEndX - touchStartX;
-  const diffY = touchEndY - touchStartY;
+  if (!isDragging) return;
+  isDragging = false;
   
-  // Verifica se o movimento foi mais horizontal do que vertical e superou 50 pixels (arraste intencional)
-  if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
-    if (diffX > 0) {
-      if (!voltarSerieBtn.disabled) voltarSerieBtn.click(); // Arrastou para a direita (Voltar)
-    } else {
-      proximaSerieBtn.click(); // Arrastou para a esquerda (Avançar)
+  const diffX = currentTranslateX;
+  currentTranslateX = 0;
+  
+  // Se arrastou mais de 75px para os lados, efetua a transição
+  if (diffX > 75) {
+    if (!voltarSerieBtn.disabled) {
+      voltarSerieBtn.click();
+      return;
     }
+  } else if (diffX < -75) {
+    proximaSerieBtn.click();
+    return;
   }
+  
+  // Retorna ao centro caso o movimento não tenha sido suficiente ou se o botão Voltar estiver desabilitado
+  flashcardContainer.style.transition = 'transform 0.3s ease';
+  flashcardContainer.style.transform = 'translateX(0)';
 }, { passive: true });
 
 cancelarExecucaoBtn.addEventListener('click', () => {
@@ -1150,13 +1233,38 @@ cancelarExecucaoBtn.addEventListener('click', () => {
   }
 });
 
-function finalizarTreino() {
+finalizarAntecipadoBtn.addEventListener('click', () => {
+  if (confirm('Deseja finalizar o treino antecipadamente? O progresso até aqui será salvo no histórico.')) {
+    const serieAtual = seriesParaExecutar[serieAtualIndex];
+    if (serieAtual) {
+      exercicios[serieAtual.exercicioIndex].series[serieAtual.serieIndex].repeticoes = flashcardReps.value || flashcardReps.placeholder;
+      exercicios[serieAtual.exercicioIndex].series[serieAtual.serieIndex].carga = flashcardCarga.value || flashcardCarga.placeholder;
+      exercicios[serieAtual.exercicioIndex].series[serieAtual.serieIndex].descanso = flashcardDescanso.value || flashcardDescanso.placeholder;
+    }
+
+    // Monta um array apenas com os exercícios e séries efetivamente realizados (até o index atual)
+    const exerciciosRealizados = JSON.parse(JSON.stringify(exercicios));
+    exerciciosRealizados.forEach((ex, eIndex) => {
+      ex.series = ex.series.filter((_, sIndex) => {
+        const posGlobal = seriesParaExecutar.findIndex(s => s.exercicioIndex === eIndex && s.serieIndex === sIndex);
+        return posGlobal !== -1 && posGlobal <= serieAtualIndex;
+      });
+    });
+    const exerciciosFiltrados = exerciciosRealizados.filter(ex => ex.series.length > 0);
+
+    finalizarTreino(exerciciosFiltrados);
+  }
+});
+
+function finalizarTreino(exerciciosFinalizados = null) {
+  pararCronometro();
+
   const sessao = {
     id: Date.now().toString(),
     cliente: nomeUsuarioSpan.textContent,
     data: new Date().toISOString(),
     treino: treinoSelecionado,
-    exercicios: JSON.parse(JSON.stringify(exercicios))
+    exercicios: exerciciosFinalizados || JSON.parse(JSON.stringify(exercicios))
   };
 
   salvarExerciciosDoTreino();

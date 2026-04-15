@@ -81,6 +81,9 @@
         border-color: #3b82f6;
         box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
       }
+      input:focus::placeholder {
+        opacity: 0;
+      }
       button {
         width: 101%;
         padding: 16px;
@@ -429,14 +432,20 @@
       <div class="screen" id="execucaoScreen">
         <div class="top-right">
           <button class="secondary-button" id="cancelarExecucaoBtn" type="button">Cancelar</button>
+          <button class="secondary-button" id="finalizarAntecipadoBtn" type="button" style="background: #d1fae5; color: #059669; margin-left: 8px;">Finalizar</button>
         </div>
         <h1 id="execucaoTitle">Execução</h1>
         <p class="subtitle" id="execucaoSubtitle">Treino em andamento</p>
 
-        <div id="flashcardContainer" class="exercicio-item" style="text-align: center; padding: 40px 20px; margin-top: 20px;">
+        <div id="flashcardContainer" class="exercicio-item" style="text-align: center; padding: 40px 20px; margin-top: 20px; touch-action: pan-y;">
           <h2 id="flashcardExercicio" style="margin: 0 0 8px 0; font-size: 24px;"></h2>
           <p id="flashcardSerie" class="subtitle" style="margin-top: 0; margin-bottom: 24px; color: #3b82f6;"></p>
           
+          <div style="margin-bottom: 24px; text-align: left;">
+            <label for="flashcardObservacao">Observações</label>
+            <input type="text" id="flashcardObservacao" placeholder="Adicionar observação..." style="width: 100%; box-sizing: border-box; margin-top: 8px;" />
+          </div>
+
           <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-bottom: 32px; text-align: left;">
             <div>
               <label for="flashcardReps">Repetições</label>
@@ -451,18 +460,19 @@
               <input type="number" id="flashcardDescanso" value="60" style="width: 80px; text-align: center;" />
             </div>
           </div>
-
-          <div id="cronometroContainer" style="display: none; margin-bottom: 24px;">
-            <p class="small-text" style="margin-bottom: 4px;">Tempo de Descanso</p>
-            <div id="cronometroDisplay" style="font-size: 40px; font-weight: 800; color: #10b981; margin: 0;">00:00</div>
-          </div>
-
-          <button id="iniciarCronometroBtn" class="secondary-button" style="margin-bottom: 16px; width: 100%; box-sizing: border-box;">Iniciar Cronômetro</button>
           
           <div style="display: flex; gap: 12px;">
             <button id="voltarSerieBtn" class="secondary-button" style="flex: 1; padding: 16px 0; font-size: 24px;">←</button>
             <button id="proximaSerieBtn" style="flex: 1; padding: 16px 0; font-size: 24px;">→</button>
           </div>
+        </div>
+
+        <div class="exercicio-item" style="text-align: center; padding: 20px; margin-top: 16px;">
+          <div id="cronometroContainer" style="display: none; margin-bottom: 16px;">
+            <p class="small-text" style="margin-bottom: 4px;">Tempo de Descanso</p>
+            <div id="cronometroDisplay" style="font-size: 40px; font-weight: 800; color: #10b981; margin: 0;">00:00</div>
+          </div>
+          <button id="iniciarCronometroBtn" class="secondary-button" style="width: 100%; box-sizing: border-box;">Iniciar Cronômetro</button>
         </div>
       </div>
 
