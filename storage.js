@@ -1,9 +1,5 @@
 import { supabase, isSupabaseEnabled } from './supabaseClient.js';
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
 function safeJSONParse(value, fallback) {
   if (!value || value === "undefined" || value === "null") return fallback;
   try { return JSON.parse(value); }
@@ -15,87 +11,75 @@ function safeJSONParse(value, fallback) {
 
 // ---------------------------------------------------------------------------
 // Current-user context
-// Must be set by auth-controller after login so all Supabase ops are scoped.
+// _currentUserId  — authenticated user (Gabriel or student)
+// _activeTargetId — whose data is being edited (may differ when Gabriel opens a student)
 // ---------------------------------------------------------------------------
 
-let _currentUserId = null;
+let _currentUserId  = null;
+let _activeTargetId = null;
 
-export function setCurrentUserId(id) {
-  _currentUserId = id || null;
-}
-
-export function getCurrentUserId() {
-  return _currentUserId;
-}
+export function setCurrentUserId(id)  { _currentUserId  = id || null; }
+export function getCurrentUserId()    { return _currentUserId; }
+export function setActiveTargetId(id) { _activeTargetId = id || null; }
+export function getActiveTargetId()   { return _activeTargetId || _currentUserId; }
 
 // ---------------------------------------------------------------------------
-// Supabase key-value helpers (scoped to _currentUserId)
-//
+// Supabase blob helpers
 // Schema: app_state (user_id UUID, key TEXT, value JSONB, updated_at TIMESTAMPTZ)
 //         PRIMARY KEY (user_id, key)
+// One row per user: key = 'workout_{user_id}'
 // ---------------------------------------------------------------------------
 
-async function sbGet(key, userId = _currentUserId) {
-  if (!isSupabaseEnabled || !userId) return null;
-  try {
-    const { data, error } = await supabase
-      .from('app_state')
-      .select('value')
-      .eq('user_id', userId)
-      .eq('key', key)
-      .maybeSingle();
-    if (error) { console.error('[Supabase] sbGet error:', error.message); return null; }
-    return data ? data.value : null;
-  } catch (e) {
-    console.error('[Supabase] sbGet exception:', e);
-    return null;
+const WORKOUT_LS_KEYS = [
+  'treinos', 'treinoSelecionado', 'historico', 'exerciciosPreDefinidos',
+  'estadoExecucao', 'limpezaFantasmas_v1', 'diretorioVideos'
+];
+
+function workoutKey(userId) { return `workout_${userId}`; }
+
+function buildWorkoutBlob() {
+  const blob = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (!k) continue;
+    if (WORKOUT_LS_KEYS.includes(k) || k.startsWith('exercicios_')) {
+      const raw = localStorage.getItem(k);
+      try { blob[k] = JSON.parse(raw); } catch { blob[k] = raw; }
+    }
   }
+  return blob;
 }
 
-async function sbSet(key, value, userId = _currentUserId) {
-  if (!isSupabaseEnabled || !userId) return;
+async function sbSaveWorkout() {
+  const targetId = _activeTargetId || _currentUserId;
+  if (!isSupabaseEnabled || !targetId) return;
   try {
     const { error } = await supabase
       .from('app_state')
       .upsert(
-        { user_id: userId, key, value, updated_at: new Date().toISOString() },
+        { user_id: targetId, key: workoutKey(targetId), value: buildWorkoutBlob(), updated_at: new Date().toISOString() },
         { onConflict: 'user_id,key' }
       );
-    if (error) console.error('[Supabase] sbSet error:', error.message);
+    if (error) console.error('[Supabase] sbSaveWorkout error:', error.message);
   } catch (e) {
-    console.error('[Supabase] sbSet exception:', e);
-  }
-}
-
-async function sbDelete(key, userId = _currentUserId) {
-  if (!isSupabaseEnabled || !userId) return;
-  try {
-    const { error } = await supabase
-      .from('app_state')
-      .delete()
-      .eq('user_id', userId)
-      .eq('key', key);
-    if (error) console.error('[Supabase] sbDelete error:', error.message);
-  } catch (e) {
-    console.error('[Supabase] sbDelete exception:', e);
+    console.error('[Supabase] sbSaveWorkout exception:', e);
   }
 }
 
 // ---------------------------------------------------------------------------
-// On-startup sync: pull all app_state rows for a given userId into localStorage.
-// Pass targetUserId when a profissional is loading a client's data.
+// On-startup sync: pull workout blob for targetUserId into localStorage.
+// Sets _activeTargetId so all subsequent saves target the same user.
 // ---------------------------------------------------------------------------
 
 export async function sincronizarDoSupabase(targetUserId = _currentUserId) {
   if (!isSupabaseEnabled || !targetUserId) return;
 
-  // Clear stale workout keys from localStorage before loading new context
+  _activeTargetId = targetUserId;
+
   const keysToRemove = [];
   for (let i = 0; i < localStorage.length; i++) {
     const k = localStorage.key(i);
-    if (k && (k === 'treinos' || k === 'treinoSelecionado' || k === 'historico' ||
-              k === 'exerciciosPreDefinidos' || k === 'estadoExecucao' ||
-              k.startsWith('exercicios_'))) {
+    if (k && (WORKOUT_LS_KEYS.includes(k) || k.startsWith('exercicios_'))) {
       keysToRemove.push(k);
     }
   }
@@ -104,21 +88,19 @@ export async function sincronizarDoSupabase(targetUserId = _currentUserId) {
   try {
     const { data, error } = await supabase
       .from('app_state')
-      .select('key, value')
-      .eq('user_id', targetUserId);
+      .select('value')
+      .eq('user_id', targetUserId)
+      .eq('key', workoutKey(targetUserId))
+      .maybeSingle();
     if (error) { console.error('[Supabase] sincronizarDoSupabase error:', error.message); return; }
-    if (!data || data.length === 0) return;
+    if (!data?.value) return;
 
-    data.forEach(({ key, value }) => {
-      if (value === null || value === undefined) {
-        localStorage.removeItem(key);
-      } else if (typeof value === 'string') {
-        localStorage.setItem(key, value);
-      } else {
-        localStorage.setItem(key, JSON.stringify(value));
-      }
+    const blob = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
+    Object.entries(blob).forEach(([k, v]) => {
+      if (v === null || v === undefined) localStorage.removeItem(k);
+      else localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v));
     });
-    console.log(`[Supabase] ${data.length} chave(s) sincronizadas (user: ${targetUserId})`);
+    console.log(`[Supabase] workout blob loaded (user: ${targetUserId})`);
   } catch (e) {
     console.error('[Supabase] sincronizarDoSupabase exception:', e);
   }
@@ -133,11 +115,7 @@ export function salvarEstadoStorage(treinos, treinoSelecionado, historico, exerc
   localStorage.setItem('treinoSelecionado', treinoSelecionado);
   localStorage.setItem('historico', JSON.stringify(historico));
   localStorage.setItem('exerciciosPreDefinidos', JSON.stringify(exerciciosPreDefinidos));
-
-  sbSet('treinos', treinos);
-  sbSet('treinoSelecionado', treinoSelecionado);
-  sbSet('historico', historico);
-  sbSet('exerciciosPreDefinidos', exerciciosPreDefinidos);
+  sbSaveWorkout();
 }
 
 export function carregarEstadoStorage() {
@@ -155,9 +133,8 @@ export function carregarEstadoStorage() {
 
 export function salvarExerciciosTreinoStorage(treino, exercicios) {
   if (!treino) return;
-  const key = `exercicios_${treino}`;
-  localStorage.setItem(key, JSON.stringify(exercicios));
-  sbSet(key, exercicios);
+  localStorage.setItem(`exercicios_${treino}`, JSON.stringify(exercicios));
+  sbSaveWorkout();
 }
 
 export function carregarExerciciosTreinoStorage(treino) {
@@ -171,21 +148,16 @@ export function carregarExerciciosTreinoStorage(treino) {
 }
 
 export function removerExerciciosTreinoStorage(treino) {
-  const key = `exercicios_${treino}`;
-  localStorage.removeItem(key);
-  sbDelete(key);
+  localStorage.removeItem(`exercicios_${treino}`);
+  sbSaveWorkout();
 }
 
 export function transferirExerciciosTreinoStorage(nomeAntigo, novoNome) {
-  const keyAntigo = `exercicios_${nomeAntigo}`;
-  const keyNovo   = `exercicios_${novoNome}`;
-  const raw = localStorage.getItem(keyAntigo);
+  const raw = localStorage.getItem(`exercicios_${nomeAntigo}`);
   if (raw) {
-    localStorage.setItem(keyNovo, raw);
-    localStorage.removeItem(keyAntigo);
-    const parsed = safeJSONParse(raw, null);
-    if (parsed !== null) sbSet(keyNovo, parsed);
-    sbDelete(keyAntigo);
+    localStorage.setItem(`exercicios_${novoNome}`, raw);
+    localStorage.removeItem(`exercicios_${nomeAntigo}`);
+    sbSaveWorkout();
   }
 }
 
@@ -193,8 +165,7 @@ export function copiarExerciciosTreinoStorage(nomeOriginal, novoNome) {
   const raw = localStorage.getItem(`exercicios_${nomeOriginal}`);
   if (raw) {
     localStorage.setItem(`exercicios_${novoNome}`, raw);
-    const parsed = safeJSONParse(raw, null);
-    if (parsed !== null) sbSet(`exercicios_${novoNome}`, parsed);
+    sbSaveWorkout();
   }
 }
 
@@ -204,7 +175,7 @@ export function copiarExerciciosTreinoStorage(nomeOriginal, novoNome) {
 
 export function salvarEstadoExecucaoStorage(estado) {
   localStorage.setItem('estadoExecucao', JSON.stringify(estado));
-  sbSet('estadoExecucao', estado);
+  sbSaveWorkout();
 }
 
 export function carregarEstadoExecucaoStorage() {
@@ -221,7 +192,7 @@ export function carregarDiretorioVideos() {
 
 export function salvarDiretorioVideos(dir) {
   localStorage.setItem('diretorioVideos', dir);
-  sbSet('diretorioVideos', dir);
+  sbSaveWorkout();
 }
 
 // ---------------------------------------------------------------------------
@@ -232,8 +203,6 @@ export function limparDadosAntigosStorage() {
   if (!localStorage.getItem('limpezaFantasmas_v1')) {
     localStorage.removeItem('exerciciosPreDefinidos');
     localStorage.setItem('limpezaFantasmas_v1', 'true');
-    sbDelete('exerciciosPreDefinidos');
-    sbSet('limpezaFantasmas_v1', 'true');
     console.log('Banco de exercícios redefinido para os nativos.');
   }
 
@@ -249,11 +218,10 @@ export function limparDadosAntigosStorage() {
       key.startsWith('estadoExecucao_')
     ) {
       localStorage.removeItem(key);
-      sbDelete(key);
     }
     if (key.startsWith('exercicios_')) {
       const parts = key.split('_');
-      if (parts.length > 2) { localStorage.removeItem(key); sbDelete(key); }
+      if (parts.length > 2) localStorage.removeItem(key);
     }
   }
 }
