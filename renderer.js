@@ -1356,7 +1356,7 @@ async function renderProfissionalScreen(profile) {
   // "← Clientes" button inside treinoScreen — return to profissional hub
   const voltarClientesBtn = document.getElementById('voltarClientesBtn');
   if (voltarClientesBtn) {
-    voltarClientesBtn.onclick = () => {
+    voltarClientesBtn.onclick = async () => {
       const banner = document.getElementById('clientContextBanner');
       if (banner) banner.style.display = 'none';
       await renderProfissionalScreen(profile);
