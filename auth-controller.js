@@ -135,7 +135,7 @@ export async function fetchClientes(profissionalId) {
   if (!isSupabaseEnabled) return [];
   const { data, error } = await supabase
     .from('users')
-    .select('id, email, full_name')
+    .select('id, email, full_name, first_name, last_name')
     .eq('professional_id', profissionalId);
   if (error) { console.error('[Auth] fetchClientes error:', error.message); return []; }
   return data ?? [];
@@ -194,15 +194,18 @@ async function handleLogin() {
 // SIGN UP — dual-role with pre-checks
 // ---------------------------------------------------------------------------
 async function handleSignup() {
-  const email    = (el('signupEmail')?.value  ?? '').trim();
-  const password = (el('signupPassword')?.value ?? '');
-  const role     = getRoleSelected();
+  const firstName = (el('signupFirstName')?.value ?? '').trim();
+  const lastName  = (el('signupLastName')?.value  ?? '').trim();
+  const email     = (el('signupEmail')?.value     ?? '').trim();
+  const password  = (el('signupPassword')?.value  ?? '');
+  const role      = getRoleSelected();
 
   clearMessages();
 
   // Basic validation
-  if (!email || !password) { setError('signupError', 'Preencha email e senha.'); return; }
-  if (password.length < 6) { setError('signupError', 'A senha deve ter pelo menos 6 caracteres.'); return; }
+  if (!firstName || !lastName)  { setError('signupError', 'Preencha nome e sobrenome.'); return; }
+  if (!email || !password)      { setError('signupError', 'Preencha email e senha.'); return; }
+  if (password.length < 6)      { setError('signupError', 'A senha deve ter pelo menos 6 caracteres.'); return; }
 
   setLoading('signupBtn', true);
 
@@ -221,7 +224,7 @@ async function handleSignup() {
       return;
     }
 
-    let metadata = { role };
+    let metadata = { role, first_name: firstName, last_name: lastName, full_name: `${firstName} ${lastName}` };
 
     if (role === 'profissional') {
       metadata.activation_code = gerarCodigoAtivacao();
@@ -290,7 +293,7 @@ async function handleSignup() {
         ? ` <br><br>Guarde seu código de ativação: <strong style="letter-spacing:.12em;">${metadata.activation_code}</strong>`
         : '';
       // Clear form fields
-      ['signupEmail', 'signupPassword', 'signupActivationCode'].forEach(id => {
+      ['signupFirstName', 'signupLastName', 'signupEmail', 'signupPassword', 'signupActivationCode'].forEach(id => {
         const inp = el(id); if (inp) inp.value = '';
       });
       setSuccess('signupSuccess',

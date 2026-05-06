@@ -1376,19 +1376,23 @@ async function renderProfissionalScreen(profile) {
       return;
     }
 
-    listEl.innerHTML = clientes.map(c => `
+    listEl.innerHTML = clientes.map(c => {
+      const displayName = (c.first_name && c.last_name)
+        ? `${c.first_name} ${c.last_name}`
+        : (c.full_name || c.email);
+      return `
       <div class="list-item">
-        <span style="font-weight:700;font-size:15px;">${c.full_name || c.email}</span>
+        <span style="font-weight:700;font-size:15px;">${displayName}</span>
         <div class="item-actions">
           <button type="button" class="edit-btn"
             style="width:auto;padding:10px 16px;font-size:14px;"
             data-client-id="${c.id}"
-            data-client-name="${c.full_name || c.email}">
+            data-client-name="${displayName}">
             Abrir
           </button>
         </div>
-      </div>
-    `).join('');
+      </div>`;
+    }).join('');
 
     listEl.querySelectorAll('[data-client-id]').forEach(btn => {
       btn.addEventListener('click', async () => {
