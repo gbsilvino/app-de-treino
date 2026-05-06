@@ -416,11 +416,14 @@ export function initAuth({ onLoginSuccess, onLogout }) {
   el('resetBtn') ?.addEventListener('click', () => handleReset());
 
   // ── Enter key shortcuts ──────────────────────────────────────────────────
-  el('loginEmail')    ?.addEventListener('keydown', e => { if (e.key === 'Enter') el('loginPassword')?.focus(); });
-  el('loginPassword') ?.addEventListener('keydown', e => { if (e.key === 'Enter') handleLogin(); });
-  el('signupPassword')?.addEventListener('keydown', e => { if (e.key === 'Enter') handleSignup(); });
+  el('loginEmail')          ?.addEventListener('keydown', e => { if (e.key === 'Enter') el('loginPassword')?.focus(); });
+  el('loginPassword')       ?.addEventListener('keydown', e => { if (e.key === 'Enter') handleLogin(); });
+  el('signupFirstName')     ?.addEventListener('keydown', e => { if (e.key === 'Enter') el('signupLastName')?.focus(); });
+  el('signupLastName')      ?.addEventListener('keydown', e => { if (e.key === 'Enter') el('signupEmail')?.focus(); });
+  el('signupEmail')         ?.addEventListener('keydown', e => { if (e.key === 'Enter') el('signupPassword')?.focus(); });
+  el('signupPassword')      ?.addEventListener('keydown', e => { if (e.key === 'Enter') handleSignup(); });
   el('signupActivationCode')?.addEventListener('keydown', e => { if (e.key === 'Enter') handleSignup(); });
-  el('resetEmail')    ?.addEventListener('keydown', e => { if (e.key === 'Enter') handleReset(); });
+  el('resetEmail')          ?.addEventListener('keydown', e => { if (e.key === 'Enter') handleReset(); });
 
   // ── Logout ───────────────────────────────────────────────────────────────
   el('navLogout')?.addEventListener('click', () => signOut());

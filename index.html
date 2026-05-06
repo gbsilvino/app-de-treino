@@ -470,8 +470,8 @@
          Uses existing .container, .screen, .field, .error, button CSS.
          Hidden by auth-controller.js after session is confirmed.
     ================================================================ -->
-    <div id="authOverlay" style="position:fixed;inset:0;background:#f5f7fb;z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;">
-      <div class="container" style="width:min(100%,420px);">
+    <div id="authOverlay" style="position:fixed;inset:0;background:#f5f7fb;z-index:1000;overflow-y:auto;display:flex;padding:20px;box-sizing:border-box;">
+      <div class="container" style="width:min(100%,420px);margin:auto;">
 
         <!-- Login -->
         <div id="authLogin" class="screen active">
