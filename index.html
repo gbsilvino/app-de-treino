@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>App de Treino</title>
+    
+    <meta name="theme-color" content="#3b82f6" />
+    <script src="/env-config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        background: #f5f7fb;
+        color: #111827;
+        padding-bottom: 80px;
+        box-sizing: border-box;
+      }
+
+      /* Estilização da barra de rolagem (Scrollbar) */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent; 
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #cbd5e1; 
+        border-radius: 10px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8; 
+      }
+      .container {
+        width: min(100%, 420px);
+        padding: 34px 28px;
+        background: #ffffff;
+        border: none;
+        border-radius: 32px;
+        box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
+      }
+      .screen {
+        display: none;
+      }
+      @keyframes fadeInScreen {
+        from { opacity: 0; transform: translateY(12px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      .screen.active {
+        display: block;
+        animation: fadeInScreen 0.3s ease-out forwards;
+      }
+      h1 {
+        margin: 0;
+        font-size: 40px;
+        line-height: 1.04;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        color: #111827;
+      }
+      p.subtitle {
+        margin: 16px 0 28px;
+        font-size: 20px;
+        font-weight: 700;
+        color: #475569;
+      }
+      .field {
+        margin-bottom: 20px;
+      }
+      label {
+        display: block;
+        margin-bottom: 10px;
+        font-size: 14px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #64748b;
+      }
+      input {
+        width: 92%;
+        padding: 16px 18px;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        font-size: 16px;
+        background: #f8fafc;
+        color: #111827;
+        outline: none;
+        transition: all 0.2s;
+      }
+      input:focus {
+        background: #ffffff;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+      }
+      input:focus::placeholder {
+        opacity: 0;
+      }
+      .password-wrapper {
+        position: relative;
+        width: 100%;
+      }
+      button {
+        width: 101%;
+        padding: 16px;
+        border: none;
+        border-radius: 16px;
+        background: #111827;
+        color: #ffffff;
+        font-size: 16px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        position: relative;
+        overflow: hidden;
+      }
+      button:hover {
+        background: #334155;
+      }
+      .secondary-button {
+        width: auto;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+        padding: 14px 18px;
+        background: #f1f5f9;
+        color: #111827;
+      }
+      .secondary-button:hover {
+        background: #e2e8f0;
+      }
+      .password-wrapper input {
+        width: 100%;
+        padding-right: 50px;
+        box-sizing: border-box;
+      }
+      .toggle-senha-btn {
+        position: absolute;
+        right: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: transparent;
+        border: none;
+        padding: 10px;
+        margin: 0;
+        cursor: pointer;
+        width: auto;
+        height: auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #64748b;
+        border-radius: 12px;
+      }
+      .toggle-senha-btn:hover { background: #f1f5f9; }
+      .error {
+        color: #ef4444;
+        background: transparent;
+        margin-top: 12px;
+        font-weight: 600;
+        text-align: left;
+      }
+      .list-box {
+        margin-top: 24px;
+      }
+      .list-item {
+        width: 100%;
+        box-sizing: border-box;
+        min-height: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+        padding: 14px 16px;
+        border-radius: 16px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        margin-bottom: 12px;
+      }
+      .list-item button {
+        width: auto;
+        padding: 10px 14px;
+        background: #fee2e2;
+        color: #ef4444;
+        border: none;
+        border-radius: 12px;
+      }
+      .list-item button:hover {
+        background: #fecaca;
+      }
+      .edit-btn {
+        background: #e0f2fe;
+        color: #0284c7;
+      }
+      .edit-btn:hover {
+        background: #bae6fd;
+      }
+      .list-item .duplicate-btn {
+        background: #f3e8ff;
+        color: #7e22ce;
+      }
+      .list-item .duplicate-btn:hover {
+        background: #e9d5ff;
+      }
+      .item-actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .reorder-btns {
+        display: flex;
+        gap: 4px;
+      }
+      .list-item .reorder-btns button,
+      .exercicio-header .reorder-btns button {
+        width: auto;
+        padding: 6px 10px;
+        background: #e2e8f0;
+        color: #475569;
+        border: none;
+        border-radius: 8px;
+      }
+      .list-item .reorder-btns button:hover:not(:disabled),
+      .exercicio-header .reorder-btns button:hover:not(:disabled) {
+        background: #cbd5e1;
+        color: #0f172a;
+      }
+      button:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      .top-right {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 14px;
+      }
+      .tab-btn {
+        flex: 1;
+        padding: 10px;
+        border-radius: 12px;
+        font-size: 14px;
+        margin: 0;
+        width: auto;
+        justify-content: center;
+      }
+      .top-right button {
+        width: auto;
+        padding: 10px 14px;
+      }
+      .select-card {
+        position: relative;
+        width: 91%;
+        border-radius: 16px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+      }
+      .select-card::after {
+        content: '▾';
+        font-size: 20px;
+        color: #64748b;
+        position: absolute;
+        right: 18px;
+        top: 50%;
+        transform: translateY(-50%);
+        pointer-events: none;
+      }
+      .select-card select {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 14px 40px 14px 18px;
+        border: none;
+        background: transparent;
+        font-size: 18px;
+        font-weight: 700;
+        color: #111827;
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        outline: none;
+        cursor: pointer;
+      }
+      .select-card select::-ms-expand {
+        display: none;
+      }
+      .exercicio-item {
+        margin-bottom: 24px;
+        padding: 18px;
+        border-radius: 16px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+      }
+      .exercicio-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+      .exercicio-header h3 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 700;
+      }
+      .serie-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 8px;
+      }
+      .serie-item input {
+        width: 60px;
+        padding: 8px 12px;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        font-size: 14px;
+        background: #ffffff;
+      }
+      .serie-item input:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      }
+      .add-serie-btn {
+        width: auto;
+        padding: 8px 12px;
+        background: #d1fae5;
+        color: #059669;
+        border: none;
+        border-radius: 10px;
+        font-size: 14px;
+      }
+      .add-serie-btn:hover {
+        background: #a7f3d0;
+      }
+      .remove-serie-btn {
+        width: auto;
+        padding: 8px 12px;
+        background: #fee2e2;
+        color: #ef4444;
+        border: none;
+        border-radius: 10px;
+        font-size: 14px;
+      }
+      .remove-serie-btn:hover {
+        background: #fecaca;
+      }
+      .bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background: #ffffff;
+        border-top: 1px solid #e2e8f0;
+        display: none;
+        justify-content: space-around;
+        padding: 12px 0;
+        box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.05);
+        z-index: 100;
+      }
+      .bottom-nav.active {
+        display: flex;
+      }
+      .nav-item {
+        background: transparent;
+        border: none;
+        color: #64748b;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+        padding: 10px 24px;
+        border-radius: 12px;
+        width: auto;
+        transition: all 0.2s ease;
+      }
+      .nav-item:hover {
+        background: #f1f5f9;
+        color: #0f172a;
+      }
+      .nav-item.active {
+        color: #3b82f6;
+        background: #eff6ff;
+      }
+      .small-text {
+        font-size: 14px;
+        color: #64748b;
+        text-align: center;
+        margin: 0;
+      }
+      @keyframes fadeSlideIn {
+        from { opacity: 0; transform: scale(0.98) translateY(10px); }
+        to { opacity: 1; transform: scale(1) translateY(0); }
+      }
+      .flashcard-anim {
+        animation: fadeSlideIn 0.25s ease-out forwards;
+      }
+      @keyframes slideInRight {
+        from { opacity: 0; transform: translateX(50px); }
+        to { opacity: 1; transform: translateX(0); }
+      }
+      @keyframes slideInLeft {
+        from { opacity: 0; transform: translateX(-50px); }
+        to { opacity: 1; transform: translateX(0); }
+      }
+      .flashcard-anim-right {
+        animation: slideInRight 0.2s ease-out forwards;
+      }
+      .flashcard-anim-left {
+        animation: slideInLeft 0.2s ease-out forwards;
+      }
+      .timeline-item {
+        position: relative;
+        padding-left: 32px;
+        margin-bottom: 24px;
+      }
+      .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: 6px;
+        top: 21px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #3b82f6;
+        box-shadow: 0 0 0 4px #ffffff;
+        z-index: 2;
+      }
+      .timeline-item::after {
+        content: '';
+        position: absolute;
+        left: 11px;
+        top: 21px;
+        height: calc(100% + 24px);
+        width: 2px;
+        background: #e2e8f0;
+        z-index: 1;
+      }
+      .timeline-item:last-child::after {
+        display: none;
+      }
+      .timeline-item:last-child {
+        margin-bottom: 0;
+      }
+      .timeline-item .exercicio-item {
+        margin-bottom: 0;
+      }
+      .ripple {
+        position: absolute;
+        border-radius: 50%;
+        transform: scale(0);
+        animation: ripple-animation 0.6s linear;
+        background-color: currentColor;
+        pointer-events: none;
+      }
+      @keyframes ripple-animation {
+        from { opacity: 0.3; }
+        to { transform: scale(4); opacity: 0; }
+      }
+    </style>
+  </head>
+  <body>
+
+    <!-- ================================================================
+         AUTH OVERLAY — sits above everything (z-index 1000)
+         Uses existing .container, .screen, .field, .error, button CSS.
+         Hidden by auth-controller.js after session is confirmed.
+    ================================================================ -->
+    <div id="authOverlay" style="position:fixed;inset:0;background:#f5f7fb;z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;">
+      <div class="container" style="width:min(100%,420px);">
+
+        <!-- Login -->
+        <div id="authLogin" class="screen active">
+          <h1>Bem-vindo</h1>
+          <p class="subtitle">Acesse sua conta</p>
+
+          <div class="field">
+            <label for="loginEmail">Email</label>
+            <input type="email" id="loginEmail" placeholder="seu@email.com" autocomplete="email" />
+          </div>
+          <div class="field">
+            <label for="loginPassword">Senha</label>
+            <div class="password-wrapper">
+              <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password" />
+              <button type="button" class="toggle-senha-btn" id="toggleLoginPassword">👁</button>
+            </div>
+          </div>
+
+          <div class="error" id="loginError"></div>
+          <button id="loginBtn" data-label="Entrar" style="margin-top:8px;">Entrar</button>
+
+          <div style="display:flex;gap:8px;margin-top:16px;justify-content:center;flex-wrap:wrap;">
+            <button type="button" class="secondary-button" id="goToSignup" style="width:auto;font-size:14px;padding:10px 16px;">Criar conta</button>
+            <button type="button" class="secondary-button" id="goToReset"  style="width:auto;font-size:14px;padding:10px 16px;">Esqueci a senha</button>
+          </div>
+        </div>
+
+        <!-- Sign Up -->
+        <div id="authSignup" class="screen">
+          <h1>Criar Conta</h1>
+          <p class="subtitle">Registre-se para começar</p>
+
+          <!-- Role selector -->
+          <div class="field">
+            <label>Tipo de conta</label>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px;">
+              <label id="roleCardProfissional" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:14px 10px;border-radius:16px;border:2px solid #3b82f6;background:#eff6ff;cursor:pointer;font-weight:700;font-size:14px;color:#1e3a8a;transition:all .2s;">
+                <input type="radio" name="signupRole" value="profissional" checked style="display:none;" />
+                <span style="font-size:24px;">🏋️</span>
+                Profissional
+              </label>
+              <label id="roleCardCliente" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:14px 10px;border-radius:16px;border:2px solid #e2e8f0;background:#f8fafc;cursor:pointer;font-weight:700;font-size:14px;color:#475569;transition:all .2s;">
+                <input type="radio" name="signupRole" value="cliente" style="display:none;" />
+                <span style="font-size:24px;">🧑‍💻</span>
+                Cliente
+              </label>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="signupEmail">Email</label>
+            <input type="email" id="signupEmail" placeholder="seu@email.com" autocomplete="email" />
+          </div>
+          <div class="field">
+            <label for="signupPassword">Senha</label>
+            <div class="password-wrapper">
+              <input type="password" id="signupPassword" placeholder="Mínimo 6 caracteres" autocomplete="new-password" />
+              <button type="button" class="toggle-senha-btn" id="toggleSignupPassword">👁</button>
+            </div>
+          </div>
+
+          <!-- Shown only when role = cliente -->
+          <div class="field" id="activationCodeField" style="display:none;">
+            <label for="signupActivationCode">Código de Ativação</label>
+            <input type="text" id="signupActivationCode" placeholder="Ex: ABC123" maxlength="6"
+                   style="text-transform:uppercase;letter-spacing:0.15em;font-size:20px;font-weight:700;text-align:center;" />
+            <p class="small-text" style="margin-top:6px;">Peça o código ao seu profissional.</p>
+          </div>
+
+          <div class="error" id="signupError"></div>
+          <div id="signupSuccess" style="color:#059669;font-weight:600;margin-top:12px;font-size:14px;line-height:1.5;"></div>
+          <button id="signupBtn" data-label="Cadastrar" style="margin-top:8px;">Cadastrar</button>
+
+          <div style="text-align:center;margin-top:16px;">
+            <button type="button" class="secondary-button" id="goToLoginFromSignup" style="width:auto;font-size:14px;padding:10px 16px;">Já tenho conta</button>
+          </div>
+        </div>
+
+        <!-- Reset Password -->
+        <div id="authReset" class="screen">
+          <h1>Recuperar Senha</h1>
+          <p class="subtitle">Enviaremos um link para seu email</p>
+
+          <div class="field">
+            <label for="resetEmail">Email</label>
+            <input type="email" id="resetEmail" placeholder="seu@email.com" autocomplete="email" />
+          </div>
+
+          <div class="error" id="resetError"></div>
+          <div id="resetSuccess" style="color:#059669;font-weight:600;margin-top:12px;font-size:14px;"></div>
+          <button id="resetBtn" data-label="Enviar Link" style="margin-top:8px;">Enviar Link</button>
+
+          <div style="text-align:center;margin-top:16px;">
+            <button type="button" class="secondary-button" id="goToLoginFromReset" style="width:auto;font-size:14px;padding:10px 16px;">Voltar ao login</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <!-- ================================================================ -->
+
+    <div class="container">
+
+      <!-- ================================================================
+           PROFISSIONAL SCREEN — shown after login when role = profissional
+           Displays activation code + linked client list.
+      ================================================================ -->
+      <div class="screen" id="profissionalScreen">
+        <h1>Meus Clientes</h1>
+        <p class="subtitle" id="profissionalGreeting">Bem-vindo!</p>
+
+        <!-- Activation code card -->
+        <div class="exercicio-item" style="padding:24px 20px;margin-bottom:24px;border:2px solid #3b82f6;background:#eff6ff;text-align:center;">
+          <p style="margin:0 0 6px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#3b82f6;">Código de Ativação</p>
+          <div id="activationCodeDisplay" style="font-size:36px;font-weight:800;letter-spacing:.18em;color:#1e3a8a;margin-bottom:12px;">------</div>
+          <p class="small-text" style="margin-bottom:14px;">Compartilhe este código com seus clientes na hora do cadastro.</p>
+          <button id="copyCodeBtn" type="button" class="secondary-button" style="width:auto;padding:10px 20px;font-size:14px;">Copiar Código</button>
+        </div>
+
+        <!-- Client list -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <h3 style="margin:0;font-size:18px;">Clientes Vinculados</h3>
+          <span id="clientesCount" class="small-text"></span>
+        </div>
+        <div class="list-box" id="clientesList" style="margin-top:0;">
+          <p class="small-text">Nenhum cliente vinculado ainda.</p>
+        </div>
+
+        <!-- Access own workouts -->
+        <button id="meusTreinosBtn" type="button" style="margin-top:24px;background:#059669;">
+          Meus Próprios Treinos
+        </button>
+      </div>
+      <!-- ================================================================ -->
+
+      <div class="screen active" id="treinoScreen">
+        <!-- Shown when a profissional is viewing a client's data -->
+        <div id="clientContextBanner" style="display:none;background:#fef3c7;border:1px solid #f59e0b;border-radius:12px;padding:10px 16px;margin-bottom:16px;font-size:14px;font-weight:700;color:#92400e;align-items:center;justify-content:space-between;gap:8px;">
+          <span id="clientContextBannerText"></span>
+          <button type="button" id="voltarClientesBtn" style="width:auto;padding:6px 12px;font-size:13px;background:#f59e0b;color:#fff;border:none;border-radius:8px;">← Clientes</button>
+        </div>
+        <h1>Meus Treinos</h1>
+        <p class="subtitle">Hoje é dia de treinar o que?</p>
+
+        <div class="exercicio-item" style="padding: 24px 20px; margin-bottom: 32px; border: 2px solid #3b82f6; background: #eff6ff;">
+          <h3 style="margin-top: 0; margin-bottom: 16px; font-size: 18px; color: #1e3a8a;">Treino Selecionado</h3>
+          <div class="select-card" style="width: 100%; box-sizing: border-box; margin-bottom: 16px; background: #ffffff;">
+            <select id="treinoSelect"></select>
+          </div>
+          <button id="confirmarTreinoBtn" style="width: 100%; box-sizing: border-box;">Abrir Treino</button>
+        </div>
+
+        <h3 style="font-size: 18px; margin-bottom: 16px; color: #111827;">Gerenciar Treinos</h3>
+        <div class="field" style="margin-bottom: 16px;">
+          <div style="width: 100%; display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center;">
+            <input id="novoTreino" type="text" placeholder="Nome do novo treino..." style="width: 100%; box-sizing: border-box; margin: 0;" />
+            <button id="adicionarTreinoBtn" type="button" class="secondary-button" style="height: 100%; margin: 0;">Adicionar</button>
+          </div>
+        </div>
+        
+        <div class="list-box" id="treinoList" style="margin-top: 0;"></div>
+      </div>
+
+      <div class="screen" id="sessaoScreen">
+        <div class="top-right">
+          <button class="secondary-button" id="voltarTreinoBtn" type="button">Voltar</button>
+        </div>
+        <h1>Sessão de Treino</h1>
+      <p class="subtitle" style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+        <span>Treino: <span id="treinoAtual"></span></span>
+        <button id="editarNomeTreinoBtn" type="button" class="edit-btn" style="width: auto; padding: 6px 12px; border: none; border-radius: 8px; font-weight: 700; font-size: 14px; cursor: pointer;">Editar</button>
+      </p>
+
+        <div class="field">
+          <label for="exercicioSelect">Novo exercício</label>
+          <div style="width: 100%; display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center;">
+            <div class="select-card" style="width: 100%; box-sizing: border-box;">
+              <select id="exercicioSelect"></select>
+            </div>
+            <button id="adicionarExercicioBtn" type="button" class="secondary-button">Adicionar</button>
+          </div>
+        </div>
+
+        <div class="list-box" id="exercicioList"></div>
+
+        <div class="error" id="erroSessao"></div>
+        <div style="display: flex; gap: 12px; margin-top: 12px;">
+          <button type="button" id="limparExerciciosBtn" class="remove-serie-btn" style="flex: 1; padding: 16px 0;">Limpar</button>
+          <button id="iniciarTreinoBtn" style="flex: 2; padding: 16px 0;">Iniciar Treino</button>
+        </div>
+      </div>
+
+      <div class="screen" id="execucaoScreen">
+        <div class="top-right">
+          <button class="secondary-button" id="cancelarExecucaoBtn" type="button">Cancelar</button>
+          <button class="secondary-button" id="finalizarAntecipadoBtn" type="button" style="background: #d1fae5; color: #059669; margin-left: 8px;">Finalizar</button>
+        </div>
+        <h1 id="execucaoTitle">Execução</h1>
+        <p class="subtitle" id="execucaoSubtitle">Treino em andamento</p>
+
+        <div style="display: flex; gap: 8px; margin-bottom: 24px;">
+          <button id="tabFlashcardBtn" type="button" class="tab-btn">Flashcards</button>
+          <button id="tabVisaoGeralBtn" type="button" class="tab-btn secondary-button">Visão Geral</button>
+        </div>
+
+        <div id="viewFlashcards">
+          <div id="flashcardContainer" class="exercicio-item" style="text-align: center; padding: 40px 20px; touch-action: pan-y;">
+          <h2 id="flashcardExercicio" style="margin: 0 0 8px 0; font-size: 24px;"></h2>
+          
+          <video id="flashcardVideo" controls muted loop autoplay playsinline style="width: 100%; height: auto; aspect-ratio: 9 / 16; max-height: 450px; border-radius: 12px; margin-bottom: 16px; background: #000; object-fit: cover; display: none;"></video>
+          <select id="flashcardVideoSelect" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 16px; display: none; background: #ffffff; color: #111827; outline: none; font-size: 14px;"></select>
+
+          <p id="flashcardSerie" class="subtitle" style="margin-top: 0; margin-bottom: 24px; color: #3b82f6;"></p>
+          
+          <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-bottom: 24px; text-align: left;">
+            <div>
+              <label for="flashcardReps">Repetições</label>
+              <input type="text" inputmode="numeric" id="flashcardReps" style="width: 80px; text-align: center;" />
+            </div>
+            <div>
+              <label for="flashcardCarga">Carga (kg)</label>
+              <input type="text" inputmode="numeric" id="flashcardCarga" style="width: 80px; text-align: center;" />
+            </div>
+            <div>
+              <label for="flashcardDescanso">Descanso (s)</label>
+              <input type="text" inputmode="numeric" id="flashcardDescanso" value="60" style="width: 80px; text-align: center;" />
+            </div>
+          </div>
+          
+          <div style="margin-bottom: 32px; text-align: left;">
+            <label for="flashcardObservacao">Observações</label>
+            <input type="text" id="flashcardObservacao" placeholder="Adicionar observação..." style="width: 100%; box-sizing: border-box; margin-top: 8px;" />
+          </div>
+          
+          <div style="display: flex; gap: 12px;">
+            <button id="voltarSerieBtn" class="secondary-button" style="flex: 1; padding: 16px 0; font-size: 24px;">←</button>
+            <button id="proximaSerieBtn" style="flex: 1; padding: 16px 0; font-size: 24px;">→</button>
+          </div>
+        </div>
+
+        <div class="exercicio-item" style="text-align: center; padding: 20px; margin-top: 16px;">
+          <div id="cronometroContainer" style="display: none; margin-bottom: 16px;">
+            <p class="small-text" style="margin-bottom: 4px;">Tempo de Descanso</p>
+            <div id="cronometroDisplay" style="font-size: 40px; font-weight: 800; color: #10b981; margin: 0;">00:00</div>
+          </div>
+          <button id="iniciarCronometroBtn" class="secondary-button" style="width: 100%; box-sizing: border-box;">Iniciar Cronômetro</button>
+        </div>
+        
+        <button id="execucaoAdicionarSerieBtn" type="button" style="width: 100%; box-sizing: border-box; padding: 12px; background: #10b981; color: #ffffff; border: none; border-radius: 16px; font-weight: 700; font-size: 16px;">+ Adicionar Série ao Exercício Atual</button>
+      </div>
+
+      <div id="viewVisaoGeral" style="display: none;">
+        <div class="exercicio-item" style="padding: 20px; margin-bottom: 24px;">
+          <h3 style="margin-top: 0; margin-bottom: 12px; font-size: 16px; color: #475569;">Adicionar ao Treino</h3>
+          <div style="display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center;">
+            <div class="select-card" style="width: 100%; box-sizing: border-box;">
+              <select id="execucaoExercicioSelect" style="font-size: 14px; padding: 10px 36px 10px 14px;"></select>
+            </div>
+            <button id="execucaoAdicionarExercicioBtn" type="button" style="background: #d1fae5; color: #059669; border: none; border-radius: 12px; padding: 10px 16px; font-weight: 700; width: auto; white-space: nowrap;">+ Adicionar</button>
+          </div>
+        </div>
+
+        <h3 style="font-size: 18px; margin-bottom: 16px;">Lista de Exercícios</h3>
+        <div class="list-box" id="execucaoVisaoGeralList"></div>
+      </div>
+    </div>
+
+      <div class="screen" id="historicoScreen">
+        <h1>Histórico</h1>
+        <p class="subtitle">Seus treinos concluídos</p>
+        
+        <div class="exercicio-item" style="padding: 16px; margin-bottom: 24px;">
+          <h3 style="margin-top: 0; margin-bottom: 12px; font-size: 16px; color: #475569;">Progresso de Volume Semanal</h3>
+          <div class="select-card" style="width: 100%; box-sizing: border-box; margin-bottom: 16px;">
+            <select id="filtroMusculoSelect" style="font-size: 16px; padding: 12px 36px 12px 14px;">
+              <option value="">Geral (Todos os Músculos)</option>
+            </select>
+          </div>
+          <div style="height: 200px; width: 100%;"><canvas id="historicoGraficoCanvas"></canvas></div>
+        </div>
+
+        <div style="display: flex; gap: 8px; margin-bottom: 24px;">
+          <button id="tabSessaoBtn" type="button" class="tab-btn">Por Sessão</button>
+          <button id="tabSemanalBtn" type="button" class="tab-btn secondary-button">Semanal</button>
+        </div>
+        <div class="list-box" id="historicoList">
+          <p class="small-text">Nenhum treino concluído ainda.</p>
+        </div>
+      </div>
+
+      <div class="screen" id="exerciciosScreen">
+        <h1>Exercícios</h1>
+        <p class="subtitle">Gerencie seu banco de exercícios</p>
+
+        <div class="field" style="margin-bottom: 24px;">
+          <label>Pasta de Vídeos Local</label>
+          <div style="width: 100%; display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center;">
+            <input id="caminhoPastaVideos" type="text" readonly placeholder="Nenhuma pasta selecionada..." style="width: 100%; box-sizing: border-box; margin: 0; background: #e2e8f0; color: #475569;" />
+            <button id="selecionarPastaBtn" type="button" class="secondary-button" style="height: 100%; margin: 0;">Buscar</button>
+          </div>
+        </div>
+
+        <div class="field" style="margin-bottom: 24px;">
+          <input id="buscaExercicioInput" type="text" placeholder="🔍 Buscar exercício..." style="width: 100%; box-sizing: border-box; margin: 0;" />
+        </div>
+
+        <div class="field">
+          <label for="novoExercicioPreDefinido">Novo exercício</label>
+          <div style="width: 100%; display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center;">
+            <input id="novoExercicioPreDefinido" type="text" placeholder="Ex: Leg Press" style="width: 100%; box-sizing: border-box; margin: 0;" />
+            <button id="addExercicioPreDefinidoBtn" type="button" class="secondary-button" style="height: 100%; margin: 0;">Adicionar</button>
+          </div>
+        </div>
+
+        <div class="list-box" id="exerciciosPreDefinidosList"></div>
+      </div>
+    </div>
+
+    <nav class="bottom-nav active" id="bottomNav">
+      <button class="nav-item active" id="navTreinos">Treinos</button>
+      <button class="nav-item" id="navExercicios">Exercícios</button>
+      <button class="nav-item" id="navHistorico">Histórico</button>
+      <button class="nav-item" id="navLogout" style="color:#ef4444;">Sair</button>
+    </nav>
+
+  <script type="module" src="renderer.js"></script>
+  </body>
+</html>

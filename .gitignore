@@ -1,0 +1,15 @@
+# Dependências do Node.js
+node_modules/
+
+# Pastas de build/compilação do Electron
+dist/
+build/
+
+# Variáveis de ambiente (nunca commitar chaves)
+.env
+.env.local
+# Gerado em build — não commitar
+env-config.js
+
+# Claude Code local settings
+.claude/
