@@ -1,3 +1,4 @@
+// build: 2026-05-05T00:00:00Z
 import { iniciarCronometro, pararCronometro, getTempoFimGlobal } from './cronometro.js';
 import {
   salvarEstadoStorage, carregarEstadoStorage, salvarExerciciosTreinoStorage, carregarExerciciosTreinoStorage,
