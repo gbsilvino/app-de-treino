@@ -254,11 +254,27 @@ async function handleSignup() {
     }
 
     // ── Actual sign-up ───────────────────────────────────────────────────────
-    const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: metadata, emailRedirectTo: window.location.origin }
-    });
+    const timeout = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('timeout')), 10000)
+    );
+
+    let signUpData, signUpErr;
+    try {
+      ({ data: signUpData, error: signUpErr } = await Promise.race([
+        supabase.auth.signUp({
+          email,
+          password,
+          options: { data: metadata, emailRedirectTo: window.location.origin }
+        }),
+        timeout
+      ]));
+    } catch (raceErr) {
+      setError('signupError', raceErr.message === 'timeout'
+        ? 'Tempo esgotado. Verifique sua conexão e tente novamente.'
+        : traduzir(raceErr.message));
+      setLoading('signupBtn', false);
+      return;
+    }
 
     if (signUpErr) {
       setError('signupError', traduzir(signUpErr.message));
@@ -266,14 +282,17 @@ async function handleSignup() {
       return;
     }
 
-    // ── Bug 5 fix: handle email-confirmation-required state ──────────────────
     // session is null when email confirmation is required
-    const needsConfirmation = !signUpData.session;
+    const needsConfirmation = !signUpData?.session;
 
     if (needsConfirmation) {
       const codeMsg = role === 'profissional'
         ? ` <br><br>Guarde seu código de ativação: <strong style="letter-spacing:.12em;">${metadata.activation_code}</strong>`
         : '';
+      // Clear form fields
+      ['signupEmail', 'signupPassword', 'signupActivationCode'].forEach(id => {
+        const inp = el(id); if (inp) inp.value = '';
+      });
       setSuccess('signupSuccess',
         `Conta criada! Verifique seu email e clique no link de confirmação antes de fazer login.${codeMsg}`
       );
